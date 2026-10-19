@@ -1,6 +1,6 @@
 {
-  "artifact": "4V4DBind-1.0.jar",
-  "artifact_sha256": "da4cf72ad3ff2caa2b9ce9b6405d0d9ae98fb6e1bd83b8f021a8cd89d14689da",
+  "artifact": "4V4DBind-1.0.1.jar",
+  "artifact_sha256": "f684257428302c5be4670e004896ebf84a9e02468f03730f854dbb61fd92dd7a",
   "player_client_scenarios": "NOT_RUN: available client protocol library does not support 26.3",
   "platforms": {
     "paper": {

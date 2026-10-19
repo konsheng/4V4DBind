@@ -1,6 +1,6 @@
 # 4V4DBind
 
-面向 Minecraft 26.3 的纯命令玩家资料绑定插件, 支持 Paper 和 Folia, 使用同一个 JAR
+纯命令玩家资料绑定插件, 支持 Paper 和 Folia, 使用同一个 JAR, 当前编译与实测基线为 Minecraft 26.3
 
 内置 QQ号、邮箱、户籍和手机号四种类型, 户籍由姓名与身份证号码组成一条记录. 每名玩家每种类型默认最多保存 10 条, 可分别调整上限或设为 `-1` 不限数量. 资料归属于玩家 UUID, 改名不会转移记录
 
@@ -10,12 +10,16 @@
 
 | 项目 | 目标 |
 | --- | --- |
-| 插件版本 | 1.0 |
-| Minecraft | 26.3, 插件会拒绝其他游戏版本 |
+| 插件版本 | 1.0.1 |
+| Minecraft | 26.3, 作为开发、编译和验收基线 |
 | Java | 25 |
 | Paper 编译基线 | `26.3.build.205-stable` |
 | Folia 编译基线 | `26.3.build.3-alpha` |
-| 部署文件 | `4V4DBind-1.0.jar` |
+| 部署文件 | `4V4DBind-1.0.1.jar` |
+
+保留 `api-version: '26.3'` 声明, 不按游戏版本字符串拦截后续版本. 其他版本的运行兼容性以实际验证为准
+
+1.0.1 移除了精确游戏版本检查, 保留上述 API 声明与 Java 要求
 
 将 JAR 放入服务端的 `plugins` 目录并启动服务端. 首次启动会生成:
 
@@ -188,7 +192,7 @@ Linux/macOS:
 sh ./gradlew clean build verifyFoliaApi
 ```
 
-根项目输出 `build/libs/4V4DBind-1.0.jar`, 包含三个内部模块. 部署时只使用这个 JAR, 不需要复制各模块的 JAR
+根项目输出 `build/libs/4V4DBind-1.0.1.jar`, 包含三个内部模块. 部署时只使用这个 JAR, 不需要复制各模块的 JAR
 
 单独运行自动化测试可用 `sh ./gradlew test` 或 Windows 下的 `.\gradlew.bat test`. `verifyFoliaApi` 会额外对固定的 Folia API 编译插件源码. 实际验证范围和运行记录见 [docs/VERIFICATION.md](docs/VERIFICATION.md)
 
@@ -200,16 +204,16 @@ sh ./gradlew clean build verifyFoliaApi
 
 推送任意分支、提交 PR 或在 Actions 页面手动运行 `Build and Release` 时, 自动使用 Java 25 和 Gradle Wrapper 构建、执行自动测试并检查 Folia API. 成功后可在该次运行的 Artifacts 下载插件 JAR 与 SHA-256 校验文件, 保留 14 天; 测试报告也会保存
 
-正式发布通过推送版本标签触发. 标签必须与 `build.gradle.kts` 中的版本、最终 JAR 文件名和包内 `plugin.yml` 完全一致. 当前版本为 `1.0`, 对应标签是 `v1.0`, 不能写成 `v1.0.0`
+正式发布通过推送版本标签触发. 标签必须与 `build.gradle.kts` 中的版本、最终 JAR 文件名和包内 `plugin.yml` 完全一致. 当前版本为 `1.0.1`, 对应标签是 `v1.0.1`
 
 确认代码已经提交并推送后, 发布当前版本:
 
 ```sh
-git tag -a v1.0 -m "4V4DBind 1.0"
-git push origin v1.0
+git tag -a v1.0.1 -m "4V4DBind 1.0.1"
+git push origin v1.0.1
 ```
 
-标签构建和测试通过后, 自动创建 GitHub Release, 生成发布说明, 并上传 `4V4DBind-1.0.jar` 与 `4V4DBind-1.0.jar.sha256`. 文件可在 [Releases 页面](https://github.com/konsheng/4V4DBind/releases)下载. 带 `-rc.1` 等后缀的版本会标为预发布
+标签构建和测试通过后, 自动创建 GitHub Release, 生成发布说明, 并上传 `4V4DBind-1.0.1.jar` 与 `4V4DBind-1.0.1.jar.sha256`. 文件可在 [Releases 页面](https://github.com/konsheng/4V4DBind/releases)下载. 带 `-rc.1` 等后缀的版本会标为预发布
 
 后续发版先修改项目版本、提交并推送代码, 再推送对应的新标签. 已有 Release 不会被覆盖; 重跑已发布标签的任务会停止发布. 普通分支推送、PR 和手动构建不创建 Release
 

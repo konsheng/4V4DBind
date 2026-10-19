@@ -1,6 +1,8 @@
-# 4V4DBind 1.0 验证记录
+# 4V4DBind 1.0.1 验证记录
 
 验证日期: 2026-10-19, Asia/Hong_Kong
+
+1.0.1 移除精确游戏版本拦截, 保留 26.3 API、编译和验收基线. 本页结果对应本版成品, 未将其他游戏版本列入已验证范围
 
 ## 环境与产物
 
@@ -9,8 +11,8 @@
 - Paper 26.3 build 205, STABLE
 - Folia 26.3 build 3, ALPHA
 - 两个平台实际使用 JDBC 3.49.1.0, SQLite 3.49.1
-- 交付文件: `build/libs/4V4DBind-1.0.jar`, 99,832 字节
-- SHA-256: `da4cf72ad3ff2caa2b9ce9b6405d0d9ae98fb6e1bd83b8f021a8cd89d14689da`
+- 交付文件: `build/libs/4V4DBind-1.0.1.jar`, 99,719 字节
+- SHA-256: `f684257428302c5be4670e004896ebf84a9e02468f03730f854dbb61fd92dd7a`
 
 Gradle 发行包与 Wrapper JAR 已分别核对官方 SHA-256. 成品包含三个内部模块及 `plugin.yml`、`config.yml`、`messages.yml` 三份 YAML 资源, 未包含 `types.yml`、Bukkit/Paper/Folia API、Adventure、Gson、SQLite 驱动、测试代码或本地 IDE 文件
 
@@ -49,7 +51,7 @@ Gradle 发行包与 Wrapper JAR 已分别核对官方 SHA-256. 成品包含三�
 | 主配置 `-1` 不限数量、未知限额类型拒绝 | 通过 | 通过 |
 | 完整停服、重新启动、逐条核对数据与编号 | 通过 | 通过 |
 
-机器可读结果见 [acceptance-report.json](acceptance-report.json). 原始临时目录为 `build/acceptance/run-20261019-154837`, 每个平台保留两次启动日志与 SQLite 数据. 这些文件都被 Git 忽略, 未混入交付包
+机器可读结果见 [acceptance-report.json](acceptance-report.json). 原始临时目录为 `build/acceptance/run-20261019-170919`, 每个平台保留两次启动日志与 SQLite 数据. 这些文件都被 Git 忽略, 未混入交付包
 
 服务端 OSHI 在此 Windows 环境报告 Perflib 计数器错误, 不影响上述启动和命令验收. 故障注入的错误配置会产生预期的重载拒绝日志
 

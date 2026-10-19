@@ -48,11 +48,6 @@ public final class BindPlugin extends JavaPlugin implements Listener {
     private CompletableFuture<Void> drain;
 
     @Override public void onEnable() {
-        if (!"26.3".equals(Bukkit.getMinecraftVersion())) {
-            getLogger().severe("仅支持 Minecraft 26.3");
-            Bukkit.getPluginManager().disablePlugin(this);
-            return;
-        }
         sessions = new SessionDirectory(this);
         try {
             for (String resource : new String[]{"config.yml", "messages.yml"}) {
