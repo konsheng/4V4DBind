@@ -195,3 +195,22 @@ sh ./gradlew clean build verifyFoliaApi
 如果 Windows/Java 25 报 `Unable to establish loopback connection`, 可以仅在当前 PowerShell 进程设置 `JAVA_TOOL_OPTIONS=-Djdk.net.unixdomain.tmpdir=C:\Windows\BayMcNonexistentSocketDir` 后重试, 不需要修改系统环境变量
 
 本地真实服务端验收脚本为 `tools/live_acceptance.py`. 构建后使用 Python 3 运行 `python tools/live_acceptance.py --accept-eula`; 只有接受 Minecraft EULA 后才使用该参数. 脚本校验指定服务端下载的 SHA-256, 在忽略的 `build/acceptance` 下创建独立目录, 仅监听 `127.0.0.1`, 不连接生产服. 它使用虚构玩家目录验证控制台命令和数据库, 不代替真实玩家客户端验收
+
+## GitHub Actions 与版本发布
+
+推送任意分支、提交 PR 或在 Actions 页面手动运行 `Build and Release` 时, 自动使用 Java 25 和 Gradle Wrapper 构建、执行自动测试并检查 Folia API. 成功后可在该次运行的 Artifacts 下载插件 JAR 与 SHA-256 校验文件, 保留 14 天; 测试报告也会保存
+
+正式发布通过推送版本标签触发. 标签必须与 `build.gradle.kts` 中的版本、最终 JAR 文件名和包内 `plugin.yml` 完全一致. 当前版本为 `1.0`, 对应标签是 `v1.0`, 不能写成 `v1.0.0`
+
+确认代码已经提交并推送后, 发布当前版本:
+
+```sh
+git tag -a v1.0 -m "4V4DBind 1.0"
+git push origin v1.0
+```
+
+标签构建和测试通过后, 自动创建 GitHub Release, 生成发布说明, 并上传 `4V4DBind-1.0.jar` 与 `4V4DBind-1.0.jar.sha256`. 文件可在 [Releases 页面](https://github.com/konsheng/4V4DBind/releases)下载. 带 `-rc.1` 等后缀的版本会标为预发布
+
+后续发版先修改项目版本、提交并推送代码, 再推送对应的新标签. 已有 Release 不会被覆盖; 重跑已发布标签的任务会停止发布. 普通分支推送、PR 和手动构建不创建 Release
+
+工作流使用 GitHub 自动提供的 `GITHUB_TOKEN`, 无需配置个人访问令牌. 构建任务仅有读取仓库权限, 发布任务单独授予 `contents: write`; Gradle 使用开源基础缓存, 只有默认分支推送可以写缓存, Actions 固定到完整提交 SHA

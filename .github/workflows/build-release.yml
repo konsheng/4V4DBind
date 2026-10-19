@@ -1,0 +1,168 @@
+name: Build and Release
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: 构建与测试
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      version: ${{ steps.artifact.outputs.version }}
+      commit: ${{ steps.artifact.outputs.commit }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 安装 Java 25
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: 配置 Gradle 与校验 Wrapper
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        with:
+          cache-provider: basic
+          cache-read-only: ${{ github.event_name != 'push' || github.ref != format('refs/heads/{0}', github.event.repository.default_branch) }}
+
+      - name: 构建插件、运行测试并检查 Folia API
+        run: sh ./gradlew clean build verifyFoliaApi --no-daemon --warning-mode fail
+
+      - name: 核对成品版本并生成校验文件
+        id: artifact
+        env:
+          RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          import zipfile
+
+          artifacts = list(Path('build/libs').glob('*.jar'))
+          if len(artifacts) != 1:
+              raise SystemExit('根项目必须且只能生成一个插件 JAR')
+          artifact = artifacts[0]
+          match = re.fullmatch(r'4V4DBind-([0-9]+\.[0-9]+(?:\.[0-9]+)?(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?)\.jar', artifact.name)
+          if match is None:
+              raise SystemExit('插件 JAR 文件名或版本格式不正确')
+          version = match.group(1)
+          with zipfile.ZipFile(artifact) as archive:
+              names = set(archive.namelist())
+              required = {
+                  'plugin.yml', 'config.yml', 'messages.yml',
+                  'com/vvvvdddd/bind/core/BuiltinTypes.class',
+                  'com/vvvvdddd/bind/storage/SqliteBindingRepository.class',
+                  'com/vvvvdddd/bind/plugin/BindPlugin.class',
+              }
+              if not required.issubset(names) or 'types.yml' in names:
+                  raise SystemExit('插件 JAR 缺少必要模块或包含已移除的类型配置')
+              if f"version: '{version}'" not in archive.read('plugin.yml').decode('utf-8').splitlines():
+                  raise SystemExit('plugin.yml 版本与 JAR 文件名不一致')
+          tag = os.environ.get('RELEASE_TAG', '')
+          if tag and tag != f'v{version}':
+              raise SystemExit('版本标签必须与插件版本完全一致')
+          checksum = hashlib.sha256(artifact.read_bytes()).hexdigest()
+          artifact.with_suffix('.jar.sha256').write_text(f'{checksum}  {artifact.name}\n', encoding='utf-8', newline='\n')
+          commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8', newline='\n') as output:
+              output.write(f'version={version}\n')
+              output.write(f'commit={commit}\n')
+          print(f'{artifact.name}: {checksum}')
+          PY
+
+      - name: 上传插件与校验文件
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: 4V4DBind-${{ steps.artifact.outputs.version }}
+          path: |
+            build/libs/4V4DBind-${{ steps.artifact.outputs.version }}.jar
+            build/libs/4V4DBind-${{ steps.artifact.outputs.version }}.jar.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: 保存测试报告
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: test-reports
+          path: |
+            bind-*/build/reports/tests/test/
+            bind-*/build/test-results/test/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  release:
+    name: 发布 Release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: 下载本次构建产物
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: 4V4DBind-${{ needs.build.outputs.version }}
+          path: release
+
+      - name: 校验并发布版本
+        working-directory: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ needs.build.outputs.version }}
+          EXPECTED_COMMIT: ${{ needs.build.outputs.commit }}
+        run: |
+          sha256sum --check "4V4DBind-$VERSION.jar.sha256"
+          tag_commit=$(gh api "repos/$GH_REPO/commits/$TAG" --jq '.sha')
+          if [[ "$tag_commit" != "$EXPECTED_COMMIT" ]]; then
+            echo "::error::远端标签已改变, 不会发布旧提交的产物"
+            exit 1
+          fi
+          gh api --include "repos/$GH_REPO/releases/tags/$TAG" \
+            > "$RUNNER_TEMP/release-check" 2> "$RUNNER_TEMP/release-check-error" || true
+          status=$(awk '/^HTTP\// { print $2; exit }' "$RUNNER_TEMP/release-check")
+          case "$status" in
+            404) ;;
+            200)
+              echo "::error::该版本的 Release 已存在, 不会覆盖"
+              exit 1
+              ;;
+            *)
+              cat "$RUNNER_TEMP/release-check-error" >&2
+              echo "::error::无法确认 Release 状态, 已停止发布"
+              exit 1
+              ;;
+          esac
+          options=()
+          if [[ "$VERSION" == *-* ]]; then
+            options+=(--prerelease)
+          fi
+          gh release create "$TAG" \
+            "4V4DBind-$VERSION.jar" "4V4DBind-$VERSION.jar.sha256" \
+            --verify-tag --title "4V4DBind $VERSION" --generate-notes \
+            "${options[@]}"
