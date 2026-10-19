@@ -8,15 +8,15 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class BuiltinTypesTest {
     @Test
-    void retainsTheExistingThreePersistentDefinitionsAndAppendsPhone() {
+    void definesTheFourFixedBindingTypes() {
         List<BindingType> expected = List.of(
-                new BindingType("qq", 1, "QQ号", true, 10,
+                new BindingType("qq", "QQ号", true, 10,
                         List.of(new FieldDefinition("value", "QQ号", "qq", true, 12, Mask.PARTIAL)),
                         List.of("value")),
-                new BindingType("email", 1, "邮箱", true, 10,
+                new BindingType("email", "邮箱", true, 10,
                         List.of(new FieldDefinition("value", "邮箱", "email", true, 254, Mask.PARTIAL)),
                         List.of("value")),
-                new BindingType("identity", 1, "户籍", true, 10,
+                new BindingType("identity", "户籍", true, 10,
                         List.of(new FieldDefinition("name", "姓名", "name", true, 64, Mask.PARTIAL),
                                 new FieldDefinition("id_number", "身份证号码", "cn_id", true, 18, Mask.HIDDEN)),
                         List.of("id_number")));
@@ -24,7 +24,7 @@ class BuiltinTypesTest {
         assertEquals(List.of("qq", "email", "identity", "phone"),
                 BuiltinTypes.defaults().stream().map(BindingType::id).toList());
         BindingType phone = BuiltinTypes.defaults().getLast();
-        assertEquals(new BindingType("phone", 1, "手机号", true, 10,
+        assertEquals(new BindingType("phone", "手机号", true, 10,
                 List.of(new FieldDefinition("value", "手机号", "phone", true, 11, Mask.PARTIAL)),
                 List.of("value")), phone);
     }

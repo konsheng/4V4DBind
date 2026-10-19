@@ -1,8 +1,8 @@
-# 4V4DBind 1.0.1 验证记录
+# 4V4DBind 验证记录
 
 验证日期: 2026-10-19, Asia/Hong_Kong
 
-1.0.1 移除精确游戏版本拦截, 保留 26.3 API、编译和验收基线. 本页结果对应本版成品, 未将其他游戏版本列入已验证范围
+本页结果对应当前源码构建, 使用 Minecraft 26.3 作为 API、编译和验收基线, 未将其他游戏版本列入已验证范围
 
 ## 环境与产物
 
@@ -11,10 +11,10 @@
 - Paper 26.3 build 205, STABLE
 - Folia 26.3 build 3, ALPHA
 - 两个平台实际使用 JDBC 3.49.1.0, SQLite 3.49.1
-- 交付文件: `build/libs/4V4DBind-1.0.1.jar`, 99,719 字节
-- SHA-256: `f684257428302c5be4670e004896ebf84a9e02468f03730f854dbb61fd92dd7a`
+- 交付文件: `build/libs/4V4DBind-1.0.1.jar`, 97,734 字节
+- SHA-256: `16dc486bb21fca6732d2bc5d2daed39808cc0e0f8e7fa101d7ce44bee348299f`
 
-Gradle 发行包与 Wrapper JAR 已分别核对官方 SHA-256. 成品包含三个内部模块及 `plugin.yml`、`config.yml`、`messages.yml` 三份 YAML 资源, 未包含 `types.yml`、Bukkit/Paper/Folia API、Adventure、Gson、SQLite 驱动、测试代码或本地 IDE 文件
+Gradle 发行包与 Wrapper JAR 已分别核对官方 SHA-256. 成品包含三个内部模块及 `plugin.yml`、`config.yml`、`messages.yml` 三份 YAML 资源, 未包含 Bukkit/Paper/Folia API、Adventure、Gson、SQLite 驱动、测试代码或本地 IDE 文件
 
 ## 自动化测试
 
@@ -23,13 +23,13 @@ Gradle 发行包与 Wrapper JAR 已分别核对官方 SHA-256. 成品包含三�
 | 模块 | 测试数 | 失败 | 错误 | 跳过 |
 | --- | --- | --- | --- | --- |
 | bind-core | 95 | 0 | 0 | 0 |
-| bind-storage | 23 | 0 | 0 | 0 |
-| bind-plugin | 37 | 0 | 0 | 0 |
-| 合计 | 155 | 0 | 0 | 0 |
+| bind-storage | 17 | 0 | 0 | 0 |
+| bind-plugin | 36 | 0 | 0 | 0 |
+| 合计 | 148 | 0 | 0 | 0 |
 
-覆盖四种内置类型、Java 校验器扩展、多条绑定、跨玩家相同资料、本人去重、限额、并发和跨连接写入、事务、重启持久化、所有权查询、损坏 JSON、队列满、数据库忙、有界关闭、YAML 安全预检、错误配置、类型结构保护、MiniMessage 动态文本隔离、Unicode/控制字符/溢出、脱敏、限流、旧会话和调度时权限复查
+覆盖四种内置类型、Java 校验器扩展、多条绑定、跨玩家相同资料、本人去重、限额、并发和跨连接写入、事务、重启持久化、所有权查询、损坏 JSON、队列满、数据库忙、有界关闭、YAML 安全预检、错误配置、固定字段校验、MiniMessage 动态文本隔离、Unicode/控制字符/溢出、脱敏、限流、旧会话和调度时权限复查
 
-类型全部由代码定义, 仅数量上限从主配置 `binding-limits` 读取. 测试覆盖手机号格式与默认上限、从旧三类数据库增加手机号、数量缺省及边界, 并确认资源中不存在 `types.yml`, 遗留文件即使包含恶意语法、非法 UTF-8 或超长内容也完全不读取. 后续类型扩展通过修改代码实现
+类型全部由代码定义, 仅数量上限从主配置 `binding-limits` 读取. 测试覆盖手机号格式与默认上限、数量缺省及边界, 使用 `database.db` 保存资料. 后续类型扩展通过修改代码实现
 
 本机 Java 25 存在回环连接初始化问题, 验证时仅对测试进程设置 `-Djdk.net.unixdomain.tmpdir=C:\Windows\BayMcNonexistentSocketDir`, 未修改系统环境变量
 
@@ -39,19 +39,18 @@ Gradle 发行包与 Wrapper JAR 已分别核对官方 SHA-256. 成品包含三�
 
 | 场景 | Paper | Folia |
 | --- | --- | --- |
-| 插件加载、数据库就绪、正常停服 | 通过 | 通过 |
+| 插件加载、database.db 就绪、正常停服 | 通过 | 通过 |
 | QQ号多条绑定、本人重复拒绝、跨玩家相同资料 | 通过 | 通过 |
 | 邮箱规范化、户籍成组保存与身份证判重 | 通过 | 通过 |
 | 手机号多条绑定、本人去重、跨玩家相同、非法格式拒绝 | 通过 | 通过 |
 | 完整查询、所有权限定、脱敏列表 | 通过 | 通过 |
 | 删除、重复删除、编号递增不重排 | 通过 | 通过 |
 | 正常重载、错误配置保留旧设置 | 通过 | 通过 |
-| 首次启动不生成类型配置、遗留类型文件不影响重载或重启 | 通过 | 通过 |
 | 主配置降低上限保留旧记录并拒绝新增 | 通过 | 通过 |
 | 主配置 `-1` 不限数量、未知限额类型拒绝 | 通过 | 通过 |
 | 完整停服、重新启动、逐条核对数据与编号 | 通过 | 通过 |
 
-机器可读结果见 [acceptance-report.json](acceptance-report.json). 原始临时目录为 `build/acceptance/run-20261019-170919`, 每个平台保留两次启动日志与 SQLite 数据. 这些文件都被 Git 忽略, 未混入交付包
+机器可读结果见 [acceptance-report.json](acceptance-report.json). 原始临时目录为 `build/acceptance/run-20261019-175056`, 每个平台保留两次启动日志与 SQLite 数据. 这些文件都被 Git 忽略, 未混入交付包
 
 服务端 OSHI 在此 Windows 环境报告 Perflib 计数器错误, 不影响上述启动和命令验收. 故障注入的错误配置会产生预期的重载拒绝日志
 

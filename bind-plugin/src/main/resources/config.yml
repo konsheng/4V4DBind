@@ -1,5 +1,4 @@
 # 配置修改后使用 /bind reload, 无效配置不会替换当前配置
-schema-version: 1
 page-size: 10
 queue-capacity: 256
 busy-timeout-millis: 3000

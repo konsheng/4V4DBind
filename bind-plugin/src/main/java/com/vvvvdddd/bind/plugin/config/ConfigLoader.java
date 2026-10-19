@@ -28,7 +28,7 @@ import java.util.Set;
 public final class ConfigLoader {
     private static final int MAX_FILE_BYTES = 262144;
     private static final Set<String> CONFIG_KEYS = Set.of(
-            "schema-version", "page-size", "queue-capacity", "busy-timeout-millis", "rate-burst",
+            "page-size", "queue-capacity", "busy-timeout-millis", "rate-burst",
             "rate-per-second", "max-in-flight", "zone"
     );
     private final Path dataDirectory;
@@ -51,7 +51,6 @@ public final class ConfigLoader {
         Map<String, Object> requiredSettings = new LinkedHashMap<>(config.getValues(false));
         requiredSettings.remove("binding-limits");
         requireKeys(requiredSettings, CONFIG_KEYS, "config.yml");
-        integer(config.get("schema-version"), 1, 1, "config.yml");
         int pageSize = integer(config.get("page-size"), 1, 50, "config.yml");
         int queueCapacity = integer(config.get("queue-capacity"), 1, 4096, "config.yml");
         int busyTimeout = integer(config.get("busy-timeout-millis"), 0, 10000, "config.yml");
@@ -85,7 +84,7 @@ public final class ConfigLoader {
                 if (limit == 0) {
                     throw invalid("config.yml");
                 }
-                types.add(new BindingType(builtin.id(), builtin.version(), builtin.name(), builtin.enabled(),
+                types.add(new BindingType(builtin.id(), builtin.name(), builtin.enabled(),
                         limit, builtin.fields(), builtin.dedupeFields()));
             }
             TypeRegistry registry = new TypeRegistry(types);

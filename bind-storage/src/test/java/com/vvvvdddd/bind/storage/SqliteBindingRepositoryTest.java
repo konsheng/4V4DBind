@@ -45,7 +45,7 @@ class SqliteBindingRepositoryTest {
     Path directory;
 
     @Test
-    void constructionDoesNotTouchDiskAndInitializeRunsSchemaInBackground() throws Exception {
+    void constructionDoesNotTouchDiskAndInitializeCreatesTablesInBackground() throws Exception {
         Path file = directory.resolve("nested/data.db");
         try (SqliteBindingRepository repository = repository(file)) {
             assertFalse(Files.exists(file.getParent()));
@@ -53,9 +53,6 @@ class SqliteBindingRepositoryTest {
             await(repository.initialize(types(type("qq", -1))));
             assertTrue(Files.isRegularFile(file));
             try (Connection connection = connect(file); Statement statement = connection.createStatement()) {
-                try (ResultSet rows = statement.executeQuery("PRAGMA user_version")) {
-                    assertEquals(1, rows.getInt(1));
-                }
                 try (ResultSet rows = statement.executeQuery("PRAGMA journal_mode")) {
                     assertEquals("wal", rows.getString(1));
                 }
@@ -147,29 +144,6 @@ class SqliteBindingRepositoryTest {
     }
 
     @Test
-    void addsPhoneToTheExistingThreeTypesWithoutChangingSavedRecords() throws Exception {
-        List<BindingType> defaults = BuiltinTypes.defaults();
-        TypeRegistry previous = new TypeRegistry(defaults.subList(0, 3));
-        ValidatorRegistry validators = new ValidatorRegistry();
-        Path file = directory.resolve("upgrade.db");
-        BindingRecord legacy;
-        try (SqliteBindingRepository repository = repository(file)) {
-            await(repository.initialize(previous));
-            legacy = await(repository.add(OWNER, Actor.console(), validators.normalizeAndValidate(
-                    previous.findId("qq").orElseThrow(), List.of("123456"))));
-        }
-        try (SqliteBindingRepository repository = repository(file)) {
-            TypeRegistry current = new TypeRegistry(defaults);
-            await(repository.initialize(current));
-            assertEquals(legacy, await(repository.view(OWNER.uuid(), legacy.id())));
-            BindingRecord phone = await(repository.add(OWNER, Actor.console(), validators.normalizeAndValidate(
-                    current.findId("phone").orElseThrow(), List.of("13800000000"))));
-            assertTrue(phone.id() > legacy.id());
-            assertEquals(2, await(repository.list(OWNER.uuid(), null, 1, 10)).total());
-        }
-    }
-
-    @Test
     void enforcesLimitsAtomicallyAcrossIndependentConnections() throws Exception {
         Path file = directory.resolve("data.db");
         BindingType qq = type("qq", 2);
@@ -250,92 +224,21 @@ class SqliteBindingRepositoryTest {
     }
 
     @Test
-    void protectsStructuresWithDataAndKeepsOldRegistryAfterFailure() throws Exception {
-        BindingType qq = type("qq", 2);
-        FieldDefinition required = field("value", "text", true, 100, Mask.PARTIAL);
-        List<BindingType> incompatible = List.of(
-                new BindingType("qq", 2, "QQ", true, 2, qq.fields(), qq.dedupeFields()),
-                new BindingType("qq", 1, "QQ", true, 2,
-                        List.of(field("renamed", "text", true, 100, Mask.PARTIAL)), List.of("renamed")),
-                new BindingType("qq", 1, "QQ", true, 2,
-                        List.of(field("value", "qq", true, 100, Mask.PARTIAL)), List.of("value")),
-                new BindingType("qq", 1, "QQ", true, 2,
-                        List.of(field("value", "text", false, 100, Mask.PARTIAL)), List.of("value")),
-                new BindingType("qq", 1, "QQ", true, 2,
-                        List.of(field("value", "text", true, 99, Mask.PARTIAL)), List.of("value")),
-                new BindingType("qq", 1, "QQ", true, 2,
-                        List.of(required, field("note", "text", false, 100, Mask.HIDDEN)), List.of("value")));
-        try (SqliteBindingRepository repository = open(types(qq))) {
-            await(repository.add(OWNER, Actor.console(), binding(qq, "111111")));
-            for (BindingType changed : incompatible) {
-                failure(repository.synchronizeTypes(types(changed)), ErrorCode.INCOMPATIBLE_SCHEMA);
-            }
-            failure(repository.synchronizeTypes(types(type("email", -1))), ErrorCode.INCOMPATIBLE_SCHEMA);
-            await(repository.add(OWNER, Actor.console(), binding(qq, "222222")));
-            assertEquals(2, await(repository.list(OWNER.uuid(), null, 1, 10)).total());
-        }
-    }
-
-    @Test
-    void protectsFieldOrderAndDedupeFields() throws Exception {
-        FieldDefinition one = field("one", "text", true, 100, Mask.PLAIN);
-        FieldDefinition two = field("two", "text", true, 100, Mask.PLAIN);
-        BindingType initial = new BindingType("custom", 1, "自定义", true, -1,
-                List.of(one, two), List.of("one", "two"));
-        try (SqliteBindingRepository repository = open(types(initial))) {
-            await(repository.add(OWNER, Actor.console(),
-                    new ValidatedBinding(initial, Map.of("one", "1", "two", "2"), "key")));
-            BindingType reordered = new BindingType("custom", 1, "自定义", true, -1,
-                    List.of(two, one), List.of("one", "two"));
-            failure(repository.synchronizeTypes(types(reordered)), ErrorCode.INCOMPATIBLE_SCHEMA);
-            BindingType changedDedupe = new BindingType("custom", 1, "自定义", true, -1,
-                    List.of(one, two), List.of("one"));
-            failure(repository.synchronizeTypes(types(changedDedupe)), ErrorCode.INCOMPATIBLE_SCHEMA);
-        }
-    }
-
-    @Test
-    void permitsDisplayMaskEnabledAndLimitUpdatesWithoutChangingData() throws Exception {
-        BindingType original = type("qq", -1);
-        BindingType changed = new BindingType("qq", 1, "联系QQ", false, 1,
-                List.of(new FieldDefinition("value", "新字段名", "text", true, 100, Mask.HIDDEN)), List.of("value"));
-        try (SqliteBindingRepository repository = open(types(original))) {
-            BindingRecord first = await(repository.add(OWNER, Actor.console(), binding(original, "111111")));
-            await(repository.synchronizeTypes(types(changed)));
+    void appliesLimitChangesWithoutDeletingOrRewritingStoredRecords() throws Exception {
+        BindingType unlimited = type("qq", -1);
+        BindingType limited = new BindingType(unlimited.id(), unlimited.name(), true, 1,
+                unlimited.fields(), unlimited.dedupeFields());
+        try (SqliteBindingRepository repository = open(types(unlimited))) {
+            BindingRecord first = await(repository.add(OWNER, Actor.console(), binding(unlimited, "111111")));
+            await(repository.add(OWNER, Actor.console(), binding(unlimited, "222222")));
+            await(repository.synchronizeTypes(types(limited)));
             assertEquals(first, await(repository.view(OWNER.uuid(), first.id())));
-            failure(repository.add(OWNER, Actor.console(), binding(original, "222222")), ErrorCode.DISABLED_TYPE);
-            BindingType enabled = new BindingType(changed.id(), changed.version(), changed.name(), true,
-                    changed.limit(), changed.fields(), changed.dedupeFields());
-            await(repository.synchronizeTypes(types(enabled)));
-            failure(repository.add(OWNER, Actor.console(), binding(original, "222222")), ErrorCode.LIMIT_REACHED);
-        }
-    }
-
-    @Test
-    void permitsChangingAndRemovingTypesWithoutData() throws Exception {
-        BindingType original = type("qq", -1);
-        try (SqliteBindingRepository repository = open(types(original))) {
-            BindingType changed = new BindingType("qq", 2, "QQ", true, 2,
-                    List.of(field("number", "qq", true, 20, Mask.HIDDEN)), List.of("number"));
-            await(repository.synchronizeTypes(types(changed)));
-            await(repository.synchronizeTypes(types(type("email", -1))));
-            failure(repository.list(OWNER.uuid(), "qq", 1, 10), ErrorCode.UNKNOWN_TYPE);
-        }
-    }
-
-    @Test
-    void rejectsIncompatibleRegistryOnRestartAndAllowsOriginalRegistry() throws Exception {
-        Path file = directory.resolve("data.db");
-        BindingType original = type("qq", -1);
-        try (SqliteBindingRepository repository = repository(file)) {
-            await(repository.initialize(types(original)));
-            await(repository.add(OWNER, Actor.console(), binding(original, "111111")));
-        }
-        try (SqliteBindingRepository repository = repository(file)) {
-            failure(repository.initialize(types(type("email", -1))), ErrorCode.INCOMPATIBLE_SCHEMA);
-            failure(repository.list(OWNER.uuid(), null, 1, 10), ErrorCode.UNAVAILABLE);
-            await(repository.initialize(types(original)));
-            assertEquals(1, await(repository.list(OWNER.uuid(), null, 1, 10)).total());
+            assertEquals(2, await(repository.list(OWNER.uuid(), null, 1, 10)).total());
+            failure(repository.add(OWNER, Actor.console(), binding(unlimited, "333333")), ErrorCode.LIMIT_REACHED);
+            failure(repository.add(OWNER, Actor.console(), binding(unlimited, "111111")), ErrorCode.DUPLICATE);
+            await(repository.synchronizeTypes(types(unlimited)));
+            await(repository.add(OWNER, Actor.console(), binding(unlimited, "333333")));
+            assertEquals(3, await(repository.list(OWNER.uuid(), null, 1, 10)).total());
         }
     }
 
@@ -467,8 +370,11 @@ class SqliteBindingRepositoryTest {
             closed.orTimeout(3, TimeUnit.SECONDS).join();
             failure(repository.list(OWNER.uuid(), null, 1, 10), ErrorCode.UNAVAILABLE);
         } finally {
+            // 回调内关闭不能等待自身, 外部再次关闭必须等待连接真正释放
             repository.close();
         }
+        Files.delete(file);
+        assertFalse(Files.exists(file));
     }
 
     @Test
@@ -498,18 +404,6 @@ class SqliteBindingRepositoryTest {
         }
     }
 
-    @Test
-    void rejectsFutureSchemaVersionAndClosesFailedInitialization() throws Exception {
-        Path file = directory.resolve("future.db");
-        try (Connection external = connect(file); Statement statement = external.createStatement()) {
-            statement.execute("PRAGMA user_version = 99");
-        }
-        try (SqliteBindingRepository repository = repository(file)) {
-            failure(repository.initialize(types(type("qq", -1))), ErrorCode.INCOMPATIBLE_SCHEMA);
-        }
-        Files.delete(file);
-    }
-
     private SqliteBindingRepository open(TypeRegistry registry) {
         SqliteBindingRepository repository = repository(directory.resolve("data.db"));
         await(repository.initialize(registry));
@@ -521,7 +415,7 @@ class SqliteBindingRepositoryTest {
     }
 
     private static BindingType type(String id, int limit) {
-        return new BindingType(id, 1, id.toUpperCase(), true, limit,
+        return new BindingType(id, id.toUpperCase(), true, limit,
                 List.of(field("value", "text", true, 100, Mask.PARTIAL)), List.of("value"));
     }
 

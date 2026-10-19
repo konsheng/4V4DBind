@@ -26,11 +26,7 @@ class ConfigLoaderTest {
     }
 
     @Test
-    void loadsBuiltinTypesWithoutATypeConfigurationFile() throws IOException {
-        try (var removedResource = ConfigLoaderTest.class.getResourceAsStream("/types.yml")) {
-            assertNull(removedResource);
-        }
-        assertFalse(Files.exists(directory.resolve("types.yml")));
+    void loadsSettingsAndBuiltinTypes() {
         PluginSettings settings = new ConfigLoader(directory).load();
         assertEquals(10, settings.pageSize());
         assertEquals(256, settings.queueCapacity());
@@ -48,21 +44,6 @@ class ConfigLoaderTest {
         assertEquals("phone", phone.fields().getFirst().validator());
         assertEquals(11, phone.fields().getFirst().maxLength());
         settings.messages().keys().forEach(key -> assertNotNull(settings.messages().render(key, Map.of())));
-        assertFalse(Files.exists(directory.resolve("types.yml")));
-    }
-
-    @Test
-    void ignoresLegacyTypeFilesRegardlessOfTheirContents() throws IOException {
-        Path legacy = directory.resolve("types.yml");
-        for (byte[] content : new byte[][]{
-                "!!java/object:java.lang.Runtime [broken yaml".getBytes(StandardCharsets.UTF_8),
-                new byte[]{(byte) 0xff, (byte) 0xfe, 0}, new byte[262145]}) {
-            Files.write(legacy, content);
-            assertEquals(BuiltinTypes.defaults(), new ConfigLoader(directory).load().types().all());
-        }
-        Files.delete(legacy);
-        Files.createDirectory(legacy);
-        assertEquals(BuiltinTypes.defaults(), new ConfigLoader(directory).load().types().all());
     }
 
     @Test
@@ -74,7 +55,6 @@ class ConfigLoaderTest {
             var configured = actual.findId(builtin.id()).orElseThrow();
             assertEquals(expected.get(builtin.id()).intValue(), configured.limit());
             assertEquals(builtin.id(), configured.id());
-            assertEquals(builtin.version(), configured.version());
             assertEquals(builtin.name(), configured.name());
             assertEquals(builtin.enabled(), configured.enabled());
             assertEquals(builtin.fields(), configured.fields());
@@ -131,7 +111,8 @@ class ConfigLoaderTest {
 
     @Test
     void rejectsUnsafeYamlBeforeBukkitDeserialization() throws IOException {
-        for (String unsafe : new String[]{"schema-version: 1\nschema-version: 2\n",
+        String defaults = Files.readString(directory.resolve("config.yml"));
+        for (String unsafe : new String[]{defaults + "\npage-size: 20\n",
                 "value: {==: java.lang.Runtime}\n", "a: &items [one]\nb: *items\n",
                 "value: !!java/object:java.lang.Runtime {}\n", "{[complex, key]: value}"}) {
             Files.writeString(directory.resolve("config.yml"), unsafe, StandardCharsets.UTF_8);

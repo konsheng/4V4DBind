@@ -19,20 +19,16 @@
 
 保留 `api-version: '26.3'` 声明, 不按游戏版本字符串拦截后续版本. 其他版本的运行兼容性以实际验证为准
 
-1.0.1 移除了精确游戏版本检查, 保留上述 API 声明与 Java 要求
-
 将 JAR 放入服务端的 `plugins` 目录并启动服务端. 首次启动会生成:
 
 ```text
 plugins/4V4DBind/
   config.yml
   messages.yml
-  bindings.db
+  database.db
 ```
 
-看到日志中的“资料服务已就绪”后即可使用 `/bind`. SQLite、Gson 和 Adventure 使用目标服务端提供的版本, 无需另装数据库服务或其他前置插件. SQLite 运行期间还可能生成 `bindings.db-wal` 和 `bindings.db-shm`
-
-旧版本遗留的 `types.yml` 不再读取, 插件也不会自动删除它; 可自行删除这个遗留文件
+看到日志中的“资料服务已就绪”后即可使用 `/bind`. SQLite、Gson 和 Adventure 使用目标服务端提供的版本, 无需另装数据库服务或其他前置插件. SQLite 运行期间还可能生成 `database.db-wal` 和 `database.db-shm`
 
 ## 命令
 
@@ -102,7 +98,7 @@ SQLite 明文保存所有字段及去重信息. `list` 的脱敏仅影响显示,
 
 控制台完整查看功能保留. 控制台完整查询结果会由服务端写入控制台日志
 
-备份时先停服, 再复制整个 `plugins/4V4DBind` 目录. 运行中仅复制 `bindings.db` 可能遗漏尚在 WAL 中的写入
+备份时先停服, 再复制整个 `plugins/4V4DBind` 目录. 运行中仅复制 `database.db` 可能遗漏尚在 WAL 中的写入
 
 ## 两个配置文件
 
@@ -111,7 +107,6 @@ SQLite 明文保存所有字段及去重信息. `list` 的脱敏仅影响显示,
 默认内容:
 
 ```yaml
-schema-version: 1
 page-size: 10
 queue-capacity: 256
 busy-timeout-millis: 3000
@@ -137,7 +132,7 @@ binding-limits:
 | `zone` | 记录时间的显示时区 | 有效的 Java 时区名称 |
 | `binding-limits` | 每名玩家各类资料的数量上限 | 各项为 `-1` 或 1–1000000 |
 
-`queue-capacity` 和 `busy-timeout-millis` 修改后必须重启服务端. 这两项有变化时, `/bind reload` 会拒绝整次重载并保留原配置. 其他配置也只有在所有校验和数据库类型同步都成功后才一起生效; 重载过程中会暂时拒绝新请求
+`queue-capacity` 和 `busy-timeout-millis` 修改后必须重启服务端. 这两项有变化时, `/bind reload` 会拒绝整次重载并保留原配置. 其他配置通过完整校验后一起生效; 重载过程中会暂时拒绝新请求
 
 `binding-limits` 使用固定的内置 ID `qq`、`email`、`identity`、`phone` 作为键, 分别控制 QQ号、邮箱、户籍和手机号的数量上限. 整个映射或其中任意一项都可以省略, 省略项使用代码默认上限 10. `-1` 表示不限数量, 不是停用
 
@@ -174,9 +169,7 @@ binding-limits:
 
 列表中的身份证号码固定显示 `****`. 其他字段超过 4 个码点时保留首尾各 2 个, 否则显示 `****`. 脱敏规则不能通过 YAML 修改
 
-固定的类型 ID、显示名、启用状态、版本、字段结构、脱敏规则、验证器和去重依据统一由 `bind-core` 的 `BuiltinTypes.defaults()` 定义. 后续有新的绑定需求时, 由我们在代码中增加定义, 按需增加校验器, 补充测试后重新构建 JAR
-
-SQLite 会核对已保存类型的结构快照. 开发升级若改变已有记录所属类型的版本、字段 ID、顺序、所用验证器标识、必填状态、最大长度或去重依据, 或移除其代码定义, 会被拒绝; 单纯提升版本号不会自动迁移数据. 应保留旧定义并增加新类型, 或另行实现明确的数据迁移
+固定的类型 ID、显示名、启用状态、字段结构、脱敏规则、验证器和去重依据统一由 `bind-core` 的 `BuiltinTypes.defaults()` 定义. 后续有新的绑定需求时, 由我们在代码中增加定义, 按需增加校验器, 补充测试后重新构建 JAR
 
 ## 编译与验证
 

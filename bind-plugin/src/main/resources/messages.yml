@@ -41,5 +41,5 @@ errors:
   busy: '<red>当前请求较多, 请稍后重试</red>'
   unavailable: '<red>资料服务暂时不可用, 请联系管理员</red>'
   storage: '<red>未能确认操作结果, 请先查询记录后再重试</red>'
-  incompatible-schema: '<red>资料类型结构与已保存数据不兼容, 请联系管理员</red>'
+  invalid-definition: '<red>资料类型定义无效, 请联系管理员</red>'
   internal: '<red>操作未能完成, 请联系管理员</red>'

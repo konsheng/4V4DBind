@@ -168,7 +168,7 @@ class BindingServiceTest {
         private BindingRecord record(UUID player, long id) {
             ValidatedBinding binding = lastBinding != null ? lastBinding : new ValidatorRegistry()
                     .normalizeAndValidate(ValidatorRegistryTest.single("qq", 12), List.of("12345"));
-            return new BindingRecord(id, player, binding.type().id(), binding.type().version(), binding.values(),
+            return new BindingRecord(id, player, binding.type().id(), binding.values(),
                     Instant.EPOCH, Actor.console());
         }
     }

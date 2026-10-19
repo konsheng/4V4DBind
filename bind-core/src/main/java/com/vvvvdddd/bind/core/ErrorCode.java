@@ -11,5 +11,5 @@ public enum ErrorCode {
     BUSY,
     UNAVAILABLE,
     STORAGE_ERROR,
-    INCOMPATIBLE_SCHEMA
+    INVALID_DEFINITION
 }

@@ -38,7 +38,7 @@ public final class ValidatorRegistry {
     public void register(String id, UnaryOperator<String> validator) {
         CoreChecks.identifier(id);
         CoreChecks.require(validator != null && validators.putIfAbsent(id, validator) == null,
-                ErrorCode.INCOMPATIBLE_SCHEMA);
+                ErrorCode.INVALID_DEFINITION);
     }
 
     public boolean supports(String id) {
@@ -46,10 +46,10 @@ public final class ValidatorRegistry {
     }
 
     public void validateTypes(TypeRegistry registry) {
-        CoreChecks.require(registry != null, ErrorCode.INCOMPATIBLE_SCHEMA);
+        CoreChecks.require(registry != null, ErrorCode.INVALID_DEFINITION);
         for (BindingType type : registry.all()) {
             for (FieldDefinition field : type.fields()) {
-                CoreChecks.require(supports(field.validator()), ErrorCode.INCOMPATIBLE_SCHEMA);
+                CoreChecks.require(supports(field.validator()), ErrorCode.INVALID_DEFINITION);
             }
         }
     }
@@ -66,7 +66,7 @@ public final class ValidatorRegistry {
         for (int index = 0; index < type.fields().size(); index++) {
             FieldDefinition field = type.fields().get(index);
             UnaryOperator<String> validator = validators.get(field.validator());
-            CoreChecks.require(validator != null, ErrorCode.INCOMPATIBLE_SCHEMA);
+            CoreChecks.require(validator != null, ErrorCode.INVALID_DEFINITION);
             if (index >= arguments.size()) {
                 CoreChecks.require(!field.required(), ErrorCode.INVALID_INPUT);
                 continue;

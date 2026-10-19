@@ -16,7 +16,7 @@ class TypeRegistryTest {
     void registryHasStableOrderingAndImmutableDefinitionSnapshots() {
         List<FieldDefinition> fields = new ArrayList<>(List.of(field("value", true)));
         List<String> dedupe = new ArrayList<>(List.of("value"));
-        BindingType type = new BindingType("custom", 1, "自定义", true, -1, fields, dedupe);
+        BindingType type = new BindingType("custom", "自定义", true, -1, fields, dedupe);
         List<BindingType> input = new ArrayList<>(List.of(type));
         TypeRegistry registry = new TypeRegistry(input);
         fields.clear();
@@ -36,43 +36,42 @@ class TypeRegistryTest {
     @Test
     void rejectsDuplicateIdsAndCaseFoldedCommandNames() {
         BindingType first = type("first", "Contact");
-        assertSchema(() -> new TypeRegistry(List.of(first, type("first", "另一项"))));
-        assertSchema(() -> new TypeRegistry(List.of(first, type("second", "contact"))));
+        assertDefinition(() -> new TypeRegistry(List.of(first, type("first", "另一项"))));
+        assertDefinition(() -> new TypeRegistry(List.of(first, type("second", "contact"))));
     }
 
     @Test
     void rejectsInvalidRegistryAndDefinitionBounds() {
-        assertSchema(() -> new TypeRegistry(List.of()));
+        assertDefinition(() -> new TypeRegistry(List.of()));
         List<BindingType> excessive = new ArrayList<>();
         for (int index = 0; index < 33; index++) {
             excessive.add(type("type" + index, "类型" + index));
         }
-        assertSchema(() -> new TypeRegistry(excessive));
-        assertSchema(() -> type("UPPERCASE", "测试"));
-        assertSchema(() -> type("../path", "测试"));
-        assertSchema(() -> type("valid", "含 空格"));
-        assertSchema(() -> type("valid", "含\u202e控制"));
-        assertSchema(() -> type("valid", "123"));
-        assertSchema(() -> new FieldDefinition("field", "字段", "text", true, 1025, Mask.PLAIN));
-        assertSchema(() -> new BindingType("test", 0, "测试", true, 10, List.of(field("value", true)), List.of("value")));
-        assertSchema(() -> new BindingType("test", 1, "测试", true, 0, List.of(field("value", true)), List.of("value")));
+        assertDefinition(() -> new TypeRegistry(excessive));
+        assertDefinition(() -> type("UPPERCASE", "测试"));
+        assertDefinition(() -> type("../path", "测试"));
+        assertDefinition(() -> type("valid", "含 空格"));
+        assertDefinition(() -> type("valid", "含\u202e控制"));
+        assertDefinition(() -> type("valid", "123"));
+        assertDefinition(() -> new FieldDefinition("field", "字段", "text", true, 1025, Mask.PLAIN));
+        assertDefinition(() -> new BindingType("test", "测试", true, 0, List.of(field("value", true)), List.of("value")));
     }
 
     @Test
     void rejectsAmbiguousOrIncompleteFieldDefinitions() {
-        assertSchema(() -> new BindingType("test", 1, "测试", true, 10,
+        assertDefinition(() -> new BindingType("test", "测试", true, 10,
                 List.of(field("value", true), field("value", true)), List.of("value")));
-        assertSchema(() -> new BindingType("test", 1, "测试", true, 10,
+        assertDefinition(() -> new BindingType("test", "测试", true, 10,
                 List.of(field("optional", false), field("required", true)), List.of("required")));
-        assertSchema(() -> new BindingType("test", 1, "测试", true, 10,
+        assertDefinition(() -> new BindingType("test", "测试", true, 10,
                 List.of(field("value", true)), List.of("absent")));
-        assertSchema(() -> new BindingType("test", 1, "测试", true, 10,
+        assertDefinition(() -> new BindingType("test", "测试", true, 10,
                 List.of(field("value", true)), List.of()));
         List<FieldDefinition> excessive = new ArrayList<>();
         for (int index = 0; index < 9; index++) {
             excessive.add(field("field" + index, true));
         }
-        assertSchema(() -> new BindingType("test", 1, "测试", true, 10, excessive, List.of("field0")));
+        assertDefinition(() -> new BindingType("test", "测试", true, 10, excessive, List.of("field0")));
     }
 
     @Test
@@ -102,7 +101,7 @@ class TypeRegistryTest {
         String secret = "sensitive-address@example.com";
         Map<String, String> input = new LinkedHashMap<>(Map.of("value", secret));
         BindingType type = type("email", "邮箱");
-        BindingRecord record = new BindingRecord(1, UUID.randomUUID(), "email", 1, input, Instant.now(), Actor.console());
+        BindingRecord record = new BindingRecord(1, UUID.randomUUID(), "email", input, Instant.now(), Actor.console());
         ValidatedBinding validated = new ValidatedBinding(type, input, "[\"" + secret + "\"]");
         input.clear();
         assertEquals(secret, record.values().get("value"));
@@ -114,14 +113,14 @@ class TypeRegistryTest {
     }
 
     private static BindingType type(String id, String name) {
-        return new BindingType(id, 1, name, true, 10, List.of(field("value", true)), List.of("value"));
+        return new BindingType(id, name, true, 10, List.of(field("value", true)), List.of("value"));
     }
 
     private static FieldDefinition field(String id, boolean required) {
         return new FieldDefinition(id, "字段", "text", required, 128, Mask.PARTIAL);
     }
 
-    private static void assertSchema(org.junit.jupiter.api.function.Executable executable) {
-        assertEquals(ErrorCode.INCOMPATIBLE_SCHEMA, assertThrows(BindingException.class, executable).code());
+    private static void assertDefinition(org.junit.jupiter.api.function.Executable executable) {
+        assertEquals(ErrorCode.INVALID_DEFINITION, assertThrows(BindingException.class, executable).code());
     }
 }

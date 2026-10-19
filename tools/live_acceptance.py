@@ -1,5 +1,6 @@
 """在仅监听本机的临时目录验收指定 Paper/Folia, 不访问生产服目录"""
 import argparse
+from contextlib import closing
 import hashlib
 import json
 import os
@@ -35,7 +36,7 @@ class Server:
         self.lines = []
         self.process = None
         self.log = None
-        self.db = self.folder / "plugins/4V4DBind/bindings.db"
+        self.db = self.folder / "plugins/4V4DBind/database.db"
         self.checks = []
         self.runtime_versions = {}
 
@@ -107,7 +108,7 @@ class Server:
         raise TimeoutError(f"{self.platform} 等待验收结果超时")
 
     def sql(self, query, params=()):
-        with sqlite3.connect(self.db, timeout=5) as connection:
+        with closing(sqlite3.connect(self.db, timeout=5)) as connection:
             return connection.execute(query, params).fetchall()
 
     def log_lines(self):
@@ -143,10 +144,9 @@ class Server:
     def exercise(self):
         owner = str(uuid.UUID("00000000-0000-4000-8000-000000000001"))
         other = str(uuid.UUID("00000000-0000-4000-8000-000000000002"))
-        legacy_types = self.folder / "plugins/4V4DBind/types.yml"
-        assert not legacy_types.exists(), "插件不应生成类型配置文件"
-        self.checks.append("no-types-yml-generated")
-        with sqlite3.connect(self.db, timeout=5) as connection:
+        assert self.db.is_file()
+        self.checks.append("database-file-name")
+        with closing(sqlite3.connect(self.db, timeout=5)) as connection, connection:
             connection.executemany("INSERT INTO players(uuid,name,name_key) VALUES(?,?,?)",
                                    [(owner, "TestOwner", "testowner"), (other, "TestOther", "testother")])
         self.command("bind", "4V4DBind 帮助")
@@ -189,11 +189,6 @@ class Server:
         config.write_text(original, encoding="utf-8")
         self.command("bind reload", "配置已重载")
         self.checks.append("failed-reload-retains-configuration")
-        legacy_contents = "value: !!java/object:java.lang.Runtime {}\n"
-        legacy_types.write_text(legacy_contents, encoding="utf-8")
-        self.command("bind reload", "配置已重载")
-        assert legacy_types.read_text(encoding="utf-8") == legacy_contents
-        self.checks.append("legacy-types-yml-ignored")
         assert "  qq: 10" in original and "  phone: 10" in original
         lowered = original.replace("  qq: 10", "  qq: 1", 1).replace("  phone: 10", "  phone: 1", 1)
         config.write_text(lowered, encoding="utf-8")
@@ -219,7 +214,7 @@ class Server:
         self.stop()
         self.start()
         assert self.sql("SELECT id,values_json FROM bindings ORDER BY id") == before
-        assert legacy_types.read_text(encoding="utf-8") == legacy_contents
+        assert self.db.is_file()
         self.command("bind admin list TestOwner", "第 1/1 页")
         self.checks.append("restart-persistence")
 

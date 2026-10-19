@@ -138,7 +138,7 @@ class ValidatorRegistryTest {
         assertDoesNotThrow(() -> registry.normalizeAndValidate(type, List.of("😀".repeat(1024), "😀".repeat(1023), "😀")));
         assertInvalid(() -> registry.normalizeAndValidate(type, List.of("😀".repeat(1024), "😀".repeat(1024), "😀")));
         registry.register("expand", value -> "a".repeat(1024));
-        BindingType expanding = new BindingType("expanding", 1, "扩展", true, 10,
+        BindingType expanding = new BindingType("expanding", "扩展", true, 10,
                 List.of(field("one", "expand", true, 1024), field("two", "expand", true, 1024), field("three", "expand", true, 1024)),
                 List.of("one", "two", "three"));
         assertInvalid(() -> registry.normalizeAndValidate(expanding, List.of("x", "y", "z")));
@@ -178,7 +178,7 @@ class ValidatorRegistryTest {
 
     @Test
     void preservesOptionalFieldPositionsAndDistinguishesAbsence() {
-        BindingType type = new BindingType("optional", 1, "选填", true, 10,
+        BindingType type = new BindingType("optional", "选填", true, 10,
                 List.of(field("first", "text", true, 128), field("second", "text", false, 128)), List.of("first", "second"));
         ValidatedBinding result = registry.normalizeAndValidate(type, List.of("required"));
         assertEquals("[\"required\",null]", result.dedupeKey());
@@ -201,25 +201,25 @@ class ValidatorRegistryTest {
         assertEquals(ErrorCode.INVALID_INPUT, exception.code());
         assertFalse(exception.toString().contains(secret));
         assertNull(exception.getCause());
-        assertEquals(ErrorCode.INCOMPATIBLE_SCHEMA,
+        assertEquals(ErrorCode.INVALID_DEFINITION,
                 assertThrows(BindingException.class, () -> registry.register("qq", value -> value)).code());
     }
 
     @Test
     void rejectsDisabledOrUnknownValidatorsBeforeStorage() {
-        BindingType disabled = new BindingType("disabled", 1, "禁用", false, 10,
+        BindingType disabled = new BindingType("disabled", "禁用", false, 10,
                 List.of(field("value", "text", true, 128)), List.of("value"));
         assertEquals(ErrorCode.DISABLED_TYPE,
                 assertThrows(BindingException.class, () -> registry.normalizeAndValidate(disabled, List.of("test"))).code());
         TypeRegistry definitions = new TypeRegistry(List.of(single("unknown", 128)));
-        assertEquals(ErrorCode.INCOMPATIBLE_SCHEMA,
+        assertEquals(ErrorCode.INVALID_DEFINITION,
                 assertThrows(BindingException.class, () -> registry.validateTypes(definitions)).code());
         assertTrue(registry.supports("qq"));
         assertFalse(registry.supports("unknown"));
     }
 
     static BindingType single(String validator, int maxLength) {
-        return new BindingType("test", 1, "测试", true, 10,
+        return new BindingType("test", "测试", true, 10,
                 List.of(field("value", validator, true, maxLength)), List.of("value"));
     }
 
@@ -235,11 +235,11 @@ class ValidatorRegistryTest {
             fields.add(field(id, "text", true, maxLength));
             dedupe.add(id);
         }
-        return new BindingType("multiple", 1, "多字段", true, 10, fields, dedupe);
+        return new BindingType("multiple", "多字段", true, 10, fields, dedupe);
     }
 
     private static BindingType identityType() {
-        return new BindingType("identity", 1, "户籍", true, 10,
+        return new BindingType("identity", "户籍", true, 10,
                 List.of(field("name", "name", true, 64), field("id_number", "cn_id", true, 18)), List.of("id_number"));
     }
 

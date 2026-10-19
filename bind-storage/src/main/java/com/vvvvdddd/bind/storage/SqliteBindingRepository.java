@@ -44,9 +44,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /** 单线程维护数据库连接, 所有磁盘操作都在后台执行 */
 public final class SqliteBindingRepository implements BindingRepository {
-    private static final int SCHEMA_VERSION = 1;
     private static final long CLOSE_WAIT_SECONDS = 5;
-    private static final String RECORD_COLUMNS = "id, owner_uuid, type_id, type_version, values_json, "
+    private static final String RECORD_COLUMNS = "id, owner_uuid, type_id, values_json, "
             + "created_at, actor_kind, actor_uuid, length(CAST(values_json AS BLOB)) AS values_bytes";
 
     private final Path database;
@@ -83,7 +82,7 @@ public final class SqliteBindingRepository implements BindingRepository {
         return submit(() -> {
             Objects.requireNonNull(types);
             if (connection != null) {
-                synchronize(types);
+                registry = types;
                 return null;
             }
             try {
@@ -98,8 +97,8 @@ public final class SqliteBindingRepository implements BindingRepository {
                     statement.execute("PRAGMA foreign_keys = ON");
                     statement.execute("PRAGMA journal_mode = WAL");
                 }
-                migrate();
-                synchronize(types);
+                createTables();
+                registry = types;
                 return null;
             } catch (Exception | LinkageError failure) {
                 registry = null;
@@ -113,7 +112,7 @@ public final class SqliteBindingRepository implements BindingRepository {
     public CompletableFuture<Void> synchronizeTypes(TypeRegistry types) {
         return submit(() -> {
             requireInitialized();
-            synchronize(Objects.requireNonNull(types));
+            registry = Objects.requireNonNull(types);
             return null;
         });
     }
@@ -183,9 +182,6 @@ public final class SqliteBindingRepository implements BindingRepository {
             if (!type.enabled()) {
                 throw new BindingException(ErrorCode.DISABLED_TYPE);
             }
-            if (!structure(type).equals(structure(binding.type()))) {
-                throw new BindingException(ErrorCode.INCOMPATIBLE_SCHEMA);
-            }
             validateValues(type, binding.values(), ErrorCode.INVALID_INPUT);
             String json = gson.toJson(binding.values());
             if (bytes(json) > InputLimits.MAX_TOTAL_BYTES || binding.dedupeKey().isEmpty()
@@ -212,24 +208,23 @@ public final class SqliteBindingRepository implements BindingRepository {
                 Instant createdAt = Instant.now();
                 try (PreparedStatement statement = connection.prepareStatement("""
                         INSERT INTO bindings
-                            (owner_uuid, type_id, type_version, values_json, dedupe_key,
+                            (owner_uuid, type_id, values_json, dedupe_key,
                              created_at, actor_kind, actor_uuid)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
                         """)) {
                     statement.setString(1, owner.uuid().toString());
                     statement.setString(2, type.id());
-                    statement.setInt(3, type.version());
-                    statement.setString(4, json);
-                    statement.setString(5, binding.dedupeKey());
-                    statement.setString(6, createdAt.toString());
-                    statement.setString(7, actor.kind());
-                    statement.setString(8, actor.uuid() == null ? null : actor.uuid().toString());
+                    statement.setString(3, json);
+                    statement.setString(4, binding.dedupeKey());
+                    statement.setString(5, createdAt.toString());
+                    statement.setString(6, actor.kind());
+                    statement.setString(7, actor.uuid() == null ? null : actor.uuid().toString());
                     statement.executeUpdate();
                 }
                 try (Statement statement = connection.createStatement();
                      ResultSet rows = statement.executeQuery("SELECT last_insert_rowid()")) {
                     rows.next();
-                    return new BindingRecord(rows.getLong(1), owner.uuid(), type.id(), type.version(),
+                    return new BindingRecord(rows.getLong(1), owner.uuid(), type.id(),
                             binding.values(), createdAt, actor);
                 }
             });
@@ -300,129 +295,40 @@ public final class SqliteBindingRepository implements BindingRepository {
         });
     }
 
-    private void migrate() throws Exception {
-        int version;
-        try (Statement statement = connection.createStatement();
-             ResultSet rows = statement.executeQuery("PRAGMA user_version")) {
-            rows.next();
-            version = rows.getInt(1);
-        }
-        if (version > SCHEMA_VERSION || version < 0) {
-            throw new BindingException(ErrorCode.INCOMPATIBLE_SCHEMA);
-        }
-        if (version == 0) {
-            transaction(() -> {
-                try (Statement statement = connection.createStatement()) {
-                    statement.execute("""
-                            CREATE TABLE IF NOT EXISTS players (
-                                uuid TEXT PRIMARY KEY,
-                                name TEXT NOT NULL,
-                                name_key TEXT NOT NULL
-                            )
-                            """);
-                    statement.execute("CREATE INDEX IF NOT EXISTS players_name_key ON players(name_key)");
-                    statement.execute("""
-                            CREATE TABLE IF NOT EXISTS binding_types (
-                                id TEXT PRIMARY KEY,
-                                type_version INTEGER NOT NULL,
-                                structure_json TEXT NOT NULL
-                            )
-                            """);
-                    statement.execute("""
-                            CREATE TABLE IF NOT EXISTS bindings (
-                                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                                owner_uuid TEXT NOT NULL REFERENCES players(uuid),
-                                type_id TEXT NOT NULL REFERENCES binding_types(id),
-                                type_version INTEGER NOT NULL,
-                                values_json TEXT NOT NULL CHECK(length(CAST(values_json AS BLOB)) <= 8192),
-                                dedupe_key TEXT NOT NULL,
-                                created_at TEXT NOT NULL,
-                                actor_kind TEXT NOT NULL,
-                                actor_uuid TEXT,
-                                UNIQUE(owner_uuid, type_id, dedupe_key)
-                            )
-                            """);
-                    statement.execute("CREATE INDEX IF NOT EXISTS bindings_type_id ON bindings(type_id)");
-                    statement.execute("PRAGMA user_version = " + SCHEMA_VERSION);
-                }
-                return null;
-            });
-        }
+    private void createTables() throws Exception {
+        transaction(() -> {
+            try (Statement statement = connection.createStatement()) {
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS players (
+                            uuid TEXT PRIMARY KEY,
+                            name TEXT NOT NULL,
+                            name_key TEXT NOT NULL
+                        )
+                        """);
+                statement.execute("CREATE INDEX IF NOT EXISTS players_name_key ON players(name_key)");
+                statement.execute("""
+                        CREATE TABLE IF NOT EXISTS bindings (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            owner_uuid TEXT NOT NULL REFERENCES players(uuid),
+                            type_id TEXT NOT NULL,
+                            values_json TEXT NOT NULL CHECK(length(CAST(values_json AS BLOB)) <= 8192),
+                            dedupe_key TEXT NOT NULL,
+                            created_at TEXT NOT NULL,
+                            actor_kind TEXT NOT NULL,
+                            actor_uuid TEXT,
+                            UNIQUE(owner_uuid, type_id, dedupe_key)
+                        )
+                        """);
+                statement.execute("CREATE INDEX IF NOT EXISTS bindings_type_id ON bindings(type_id)");
+            }
+            return null;
+        });
         try (Statement statement = connection.createStatement();
              ResultSet rows = statement.executeQuery("PRAGMA foreign_key_check")) {
             if (rows.next()) {
                 throw new BindingException(ErrorCode.STORAGE_ERROR);
             }
         }
-    }
-
-    private void synchronize(TypeRegistry types) throws Exception {
-        transaction(() -> {
-            Map<String, String> current = new HashMap<>();
-            for (BindingType type : types.all()) {
-                current.put(type.id(), structure(type));
-            }
-            List<String> removed = new ArrayList<>();
-            try (Statement statement = connection.createStatement();
-                 ResultSet rows = statement.executeQuery("SELECT id, structure_json FROM binding_types")) {
-                while (rows.next()) {
-                    String id = rows.getString("id");
-                    String updated = current.get(id);
-                    if (!Objects.equals(updated, rows.getString("structure_json"))) {
-                        try (PreparedStatement count = connection.prepareStatement(
-                                "SELECT 1 FROM bindings WHERE type_id = ? LIMIT 1")) {
-                            count.setString(1, id);
-                            try (ResultSet data = count.executeQuery()) {
-                                if (data.next()) {
-                                    throw new BindingException(ErrorCode.INCOMPATIBLE_SCHEMA);
-                                }
-                            }
-                        }
-                    }
-                    if (updated == null) {
-                        removed.add(id);
-                    }
-                }
-            }
-            try (PreparedStatement statement = connection.prepareStatement("DELETE FROM binding_types WHERE id = ?")) {
-                for (String id : removed) {
-                    statement.setString(1, id);
-                    statement.executeUpdate();
-                }
-            }
-            try (PreparedStatement statement = connection.prepareStatement("""
-                    INSERT INTO binding_types(id, type_version, structure_json) VALUES (?, ?, ?)
-                    ON CONFLICT(id) DO UPDATE SET type_version = excluded.type_version,
-                        structure_json = excluded.structure_json
-                    """)) {
-                for (BindingType type : types.all()) {
-                    statement.setString(1, type.id());
-                    statement.setInt(2, type.version());
-                    statement.setString(3, current.get(type.id()));
-                    statement.executeUpdate();
-                }
-            }
-            return null;
-        });
-        // 只有持久化事务成功后才切换内存中的类型定义
-        registry = types;
-    }
-
-    private String structure(BindingType type) {
-        List<Map<String, Object>> fields = new ArrayList<>();
-        for (FieldDefinition field : type.fields()) {
-            Map<String, Object> values = new LinkedHashMap<>();
-            values.put("id", field.id());
-            values.put("validator", field.validator());
-            values.put("required", field.required());
-            values.put("maxLength", field.maxLength());
-            fields.add(values);
-        }
-        Map<String, Object> signature = new LinkedHashMap<>();
-        signature.put("version", type.version());
-        signature.put("fields", fields);
-        signature.put("dedupeFields", type.dedupeFields());
-        return gson.toJson(signature);
     }
 
     private void upsertPlayer(PlayerIdentity player) throws SQLException {
@@ -459,14 +365,11 @@ public final class SqliteBindingRepository implements BindingRepository {
             String typeId = rows.getString("type_id");
             BindingType type = registry.findId(typeId)
                     .orElseThrow(() -> new BindingException(ErrorCode.STORAGE_ERROR));
-            if (type.version() != rows.getInt("type_version")) {
-                throw new BindingException(ErrorCode.STORAGE_ERROR);
-            }
             Map<String, String> values = decodeValues(rows.getString("values_json"));
             validateValues(type, values, ErrorCode.STORAGE_ERROR);
             String actorUuid = rows.getString("actor_uuid");
             return new BindingRecord(rows.getLong("id"), UUID.fromString(rows.getString("owner_uuid")),
-                    typeId, type.version(), values, Instant.parse(rows.getString("created_at")),
+                    typeId, values, Instant.parse(rows.getString("created_at")),
                     new Actor(rows.getString("actor_kind"), actorUuid == null ? null : UUID.fromString(actorUuid)));
         } catch (BindingException failure) {
             throw new BindingException(ErrorCode.STORAGE_ERROR);
@@ -572,10 +475,9 @@ public final class SqliteBindingRepository implements BindingRepository {
 
     @Override
     public void close() {
-        if (!closed.compareAndSet(false, true)) {
-            return;
+        if (closed.compareAndSet(false, true)) {
+            executor.shutdown();
         }
-        executor.shutdown();
         if (Thread.currentThread() == storageThread) {
             return;
         }

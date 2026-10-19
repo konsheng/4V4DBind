@@ -1,12 +1,12 @@
 {
   "artifact": "4V4DBind-1.0.1.jar",
-  "artifact_sha256": "f684257428302c5be4670e004896ebf84a9e02468f03730f854dbb61fd92dd7a",
+  "artifact_sha256": "16dc486bb21fca6732d2bc5d2daed39808cc0e0f8e7fa101d7ce44bee348299f",
   "player_client_scenarios": "NOT_RUN: available client protocol library does not support 26.3",
   "platforms": {
     "paper": {
       "checks": [
         "startup",
-        "no-types-yml-generated",
+        "database-file-name",
         "multiple-values",
         "owner-deduplication",
         "cross-owner-duplicate",
@@ -23,7 +23,6 @@
         "stable-increasing-id",
         "reload",
         "failed-reload-retains-configuration",
-        "legacy-types-yml-ignored",
         "lowered-limits-retain-existing-data",
         "unlimited-binding-limit",
         "unknown-limit-type-rejected",
@@ -41,7 +40,7 @@
     "folia": {
       "checks": [
         "startup",
-        "no-types-yml-generated",
+        "database-file-name",
         "multiple-values",
         "owner-deduplication",
         "cross-owner-duplicate",
@@ -58,7 +57,6 @@
         "stable-increasing-id",
         "reload",
         "failed-reload-retains-configuration",
-        "legacy-types-yml-ignored",
         "lowered-limits-retain-existing-data",
         "unlimited-binding-limit",
         "unknown-limit-type-rejected",

@@ -14,14 +14,14 @@ public final class TypeRegistry {
 
     public TypeRegistry(Collection<BindingType> types) {
         CoreChecks.require(types != null && !types.isEmpty() && types.size() <= InputLimits.MAX_TYPES,
-                ErrorCode.INCOMPATIBLE_SCHEMA);
+                ErrorCode.INVALID_DEFINITION);
         Map<String, BindingType> ids = new LinkedHashMap<>();
         Map<String, BindingType> names = new LinkedHashMap<>();
         for (BindingType type : types) {
-            CoreChecks.require(type != null, ErrorCode.INCOMPATIBLE_SCHEMA);
+            CoreChecks.require(type != null, ErrorCode.INVALID_DEFINITION);
             CoreChecks.require(ids.putIfAbsent(type.id(), type) == null
                     && names.putIfAbsent(type.name().toLowerCase(Locale.ROOT), type) == null,
-                    ErrorCode.INCOMPATIBLE_SCHEMA);
+                    ErrorCode.INVALID_DEFINITION);
         }
         this.types = List.copyOf(ids.values());
         this.byId = Map.copyOf(ids);

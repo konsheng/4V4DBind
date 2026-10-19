@@ -7,7 +7,6 @@ import com.vvvvdddd.bind.plugin.config.ConfigLoader;
 import com.vvvvdddd.bind.plugin.config.PluginSettings;
 import com.vvvvdddd.bind.storage.SqliteBindingRepository;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -55,7 +54,7 @@ public final class BindPlugin extends JavaPlugin implements Listener {
             }
             PluginSettings settings = new ConfigLoader(getDataFolder().toPath(), validators).load();
             validators.validateTypes(settings.types());
-            repository = new SqliteBindingRepository(getDataFolder().toPath().resolve("bindings.db"),
+            repository = new SqliteBindingRepository(getDataFolder().toPath().resolve("database.db"),
                     settings.queueCapacity(), settings.busyTimeoutMillis());
             runtime = new RuntimeState(settings, new BindingService(repository, validators), repository);
             BindingCommands commands = new BindingCommands(this);
@@ -172,7 +171,7 @@ public final class BindPlugin extends JavaPlugin implements Listener {
                 case AMBIGUOUS_PLAYER -> "errors.ambiguous-player";
                 case BUSY -> "errors.busy";
                 case UNAVAILABLE -> "errors.unavailable";
-                case INCOMPATIBLE_SCHEMA -> "errors.incompatible-schema";
+                case INVALID_DEFINITION -> "errors.invalid-definition";
                 case STORAGE_ERROR -> "errors.storage";
             };
             if (code == ErrorCode.STORAGE_ERROR) report("REQUEST", failure);
@@ -246,7 +245,7 @@ public final class BindPlugin extends JavaPlugin implements Listener {
         Throwable cause = failure;
         for (int depth = 0; depth < 8 && cause != null; depth++, cause = cause.getCause()) {
             if (cause instanceof BindingException known) return known.code();
-            if (cause instanceof ConfigException) return ErrorCode.INCOMPATIBLE_SCHEMA;
+            if (cause instanceof ConfigException) return ErrorCode.INVALID_DEFINITION;
         }
         return ErrorCode.STORAGE_ERROR;
     }

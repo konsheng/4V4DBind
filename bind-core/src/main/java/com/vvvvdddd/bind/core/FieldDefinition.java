@@ -6,6 +6,6 @@ public record FieldDefinition(String id, String name, String validator, boolean 
         CoreChecks.displayName(name, false);
         CoreChecks.identifier(validator);
         CoreChecks.require(maxLength >= 1 && maxLength <= InputLimits.MAX_FIELD_CODE_POINTS && mask != null,
-                ErrorCode.INCOMPATIBLE_SCHEMA);
+                ErrorCode.INVALID_DEFINITION);
     }
 }

@@ -16,7 +16,7 @@ final class CoreChecks {
     }
 
     static void identifier(String value) {
-        require(value != null && IDENTIFIER.matcher(value).matches(), ErrorCode.INCOMPATIBLE_SCHEMA);
+        require(value != null && IDENTIFIER.matcher(value).matches(), ErrorCode.INVALID_DEFINITION);
     }
 
     static void text(String value, int maxCodePoints, int maxBytes, ErrorCode code) {
@@ -41,14 +41,14 @@ final class CoreChecks {
     }
 
     static void displayName(String value, boolean token) {
-        text(value, 48, 192, ErrorCode.INCOMPATIBLE_SCHEMA);
+        text(value, 48, 192, ErrorCode.INVALID_DEFINITION);
         require(!stripWhitespace(value).isEmpty() && value.equals(stripWhitespace(value)),
-                ErrorCode.INCOMPATIBLE_SCHEMA);
+                ErrorCode.INVALID_DEFINITION);
         if (token) {
             require(value.codePoints().noneMatch(cp -> Character.isWhitespace(cp) || Character.isSpaceChar(cp)),
-                    ErrorCode.INCOMPATIBLE_SCHEMA);
+                    ErrorCode.INVALID_DEFINITION);
             require(!value.chars().allMatch(character -> character >= '0' && character <= '9'),
-                    ErrorCode.INCOMPATIBLE_SCHEMA);
+                    ErrorCode.INVALID_DEFINITION);
         }
     }
 

@@ -21,7 +21,7 @@ public final class MessageCatalog {
     private static final TagResolver STANDARD_TAGS = TagResolver.standard();
     private static final Set<String> PLACEHOLDERS = Set.of(
             "id", "player", "target", "type", "fields", "time", "actor", "page", "pages",
-            "total", "value", "field", "limit", "usage", "count", "version", "reason"
+            "total", "value", "field", "limit", "usage", "count", "reason"
     );
     private static final Component FALLBACK = Component.text("消息暂时不可用", NamedTextColor.RED);
     private final Map<String, String> templates;
