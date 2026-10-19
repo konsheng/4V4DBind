@@ -2,7 +2,7 @@
 
 验证日期: 2026-10-19, Asia/Hong_Kong
 
-本页结果对应当前源码构建, 使用 Minecraft 26.3 作为 API、编译和验收基线, 未将其他游戏版本列入已验证范围
+本页对应 1.0.2 发布构建, 使用 Minecraft 26.3 作为 API、编译和验收基线, 未将其他游戏版本列入已验证范围
 
 ## 环境与产物
 
@@ -11,8 +11,8 @@
 - Paper 26.3 build 205, STABLE
 - Folia 26.3 build 3, ALPHA
 - 两个平台实际使用 JDBC 3.49.1.0, SQLite 3.49.1
-- 交付文件: `build/libs/4V4DBind-1.0.1.jar`, 97,734 字节
-- SHA-256: `16dc486bb21fca6732d2bc5d2daed39808cc0e0f8e7fa101d7ce44bee348299f`
+- 交付文件: `build/libs/4V4DBind-1.0.2.jar`, 97,734 字节
+- SHA-256: `70df21b6c924d5e1bc9f8d77561c91b8d33fc0cf0ffb7ab1e075733c13910963`
 
 Gradle 发行包与 Wrapper JAR 已分别核对官方 SHA-256. 成品包含三个内部模块及 `plugin.yml`、`config.yml`、`messages.yml` 三份 YAML 资源, 未包含 Bukkit/Paper/Folia API、Adventure、Gson、SQLite 驱动、测试代码或本地 IDE 文件
 
@@ -35,7 +35,9 @@ Gradle 发行包与 Wrapper JAR 已分别核对官方 SHA-256. 成品包含三�
 
 ## 真实服务端验收
 
-使用同一个且与交付 SHA-256 一致的插件 JAR, 由 `tools/live_acceptance.py` 在 `127.0.0.1` 临时测试服完成以下操作. 目标玩家目录由虚构测试夹具预置, 通过真实服务端控制台执行管理员命令
+以下实服结果来自提交 `e1e932c` 构建的 `4V4DBind-1.0.1.jar`, SHA-256 为 `16dc486bb21fca6732d2bc5d2daed39808cc0e0f8e7fa101d7ce44bee348299f`. 两个平台使用同一产物, 由 `tools/live_acceptance.py` 在 `127.0.0.1` 临时测试服完成以下操作. 目标玩家目录由虚构测试夹具预置, 通过真实服务端控制台执行管理员命令
+
+1.0.2 与上述已实测产物逐项比较, 41 个类文件和其他资源字节完全一致, 唯一变化是 `plugin.yml` 中的发行号由 `1.0.1` 改为 `1.0.2`. 本次保留相同功能代码的实测依据, 未重复运行 1.0.2 实服验收; 机器可读报告中的原始产物名称和校验值保持真实记录
 
 | 场景 | Paper | Folia |
 | --- | --- | --- |

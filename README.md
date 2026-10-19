@@ -10,12 +10,12 @@
 
 | 项目 | 目标 |
 | --- | --- |
-| 插件版本 | 1.0.1 |
+| 插件版本 | 1.0.2 |
 | Minecraft | 26.3, 作为开发、编译和验收基线 |
 | Java | 25 |
 | Paper 编译基线 | `26.3.build.205-stable` |
 | Folia 编译基线 | `26.3.build.3-alpha` |
-| 部署文件 | `4V4DBind-1.0.1.jar` |
+| 部署文件 | `4V4DBind-1.0.2.jar` |
 
 保留 `api-version: '26.3'` 声明, 不按游戏版本字符串拦截后续版本. 其他版本的运行兼容性以实际验证为准
 
@@ -185,7 +185,7 @@ Linux/macOS:
 sh ./gradlew clean build verifyFoliaApi
 ```
 
-根项目输出 `build/libs/4V4DBind-1.0.1.jar`, 包含三个内部模块. 部署时只使用这个 JAR, 不需要复制各模块的 JAR
+根项目输出 `build/libs/4V4DBind-1.0.2.jar`, 包含三个内部模块. 部署时只使用这个 JAR, 不需要复制各模块的 JAR
 
 单独运行自动化测试可用 `sh ./gradlew test` 或 Windows 下的 `.\gradlew.bat test`. `verifyFoliaApi` 会额外对固定的 Folia API 编译插件源码. 实际验证范围和运行记录见 [docs/VERIFICATION.md](docs/VERIFICATION.md)
 
@@ -197,16 +197,16 @@ sh ./gradlew clean build verifyFoliaApi
 
 推送任意分支、提交 PR 或在 Actions 页面手动运行 `Build and Release` 时, 自动使用 Java 25 和 Gradle Wrapper 构建、执行自动测试并检查 Folia API. 成功后可在该次运行的 Artifacts 下载插件 JAR 与 SHA-256 校验文件, 保留 14 天; 测试报告也会保存
 
-正式发布通过推送版本标签触发. 标签必须与 `build.gradle.kts` 中的版本、最终 JAR 文件名和包内 `plugin.yml` 完全一致. 当前版本为 `1.0.1`, 对应标签是 `v1.0.1`
+正式发布通过推送版本标签触发. 标签必须与 `build.gradle.kts` 中的版本、最终 JAR 文件名和包内 `plugin.yml` 完全一致. 当前版本为 `1.0.2`, 对应标签是 `v1.0.2`
 
 确认代码已经提交并推送后, 发布当前版本:
 
 ```sh
-git tag -a v1.0.1 -m "4V4DBind 1.0.1"
-git push origin v1.0.1
+git tag -a v1.0.2 -m "4V4DBind 1.0.2"
+git push origin v1.0.2
 ```
 
-标签构建和测试通过后, 自动创建 GitHub Release, 生成发布说明, 并上传 `4V4DBind-1.0.1.jar` 与 `4V4DBind-1.0.1.jar.sha256`. 文件可在 [Releases 页面](https://github.com/konsheng/4V4DBind/releases)下载. 带 `-rc.1` 等后缀的版本会标为预发布
+标签构建和测试通过后, 自动创建 GitHub Release, 生成发布说明, 并上传 `4V4DBind-1.0.2.jar` 与 `4V4DBind-1.0.2.jar.sha256`. 文件可在 [Releases 页面](https://github.com/konsheng/4V4DBind/releases)下载. 带 `-rc.1` 等后缀的版本会标为预发布
 
 后续发版先修改项目版本、提交并推送代码, 再推送对应的新标签. 已有 Release 不会被覆盖; 重跑已发布标签的任务会停止发布. 普通分支推送、PR 和手动构建不创建 Release
 

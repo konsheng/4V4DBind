@@ -53,7 +53,7 @@ class Server:
         self.jar = download
         plugins = self.folder / "plugins"
         plugins.mkdir(exist_ok=True)
-        shutil.copy2(ROOT / "build/libs/4V4DBind-1.0.1.jar", plugins / "4V4DBind.jar")
+        shutil.copy2(ROOT / "build/libs/4V4DBind-1.0.2.jar", plugins / "4V4DBind.jar")
         (self.folder / "eula.txt").write_text("eula=true\n", encoding="utf-8")
         properties = {
             "server-ip": "127.0.0.1", "server-port": str(self.port), "online-mode": "false",
@@ -227,8 +227,8 @@ def main():
     if not args.accept_eula:
         parser.error("启动前需要接受 Minecraft EULA: https://www.minecraft.net/eula")
     run = ROOT / "build/acceptance" / time.strftime("run-%Y%m%d-%H%M%S")
-    report = {"artifact": "4V4DBind-1.0.1.jar",
-              "artifact_sha256": hashlib.sha256((ROOT / "build/libs/4V4DBind-1.0.1.jar").read_bytes()).hexdigest(),
+    report = {"artifact": "4V4DBind-1.0.2.jar",
+              "artifact_sha256": hashlib.sha256((ROOT / "build/libs/4V4DBind-1.0.2.jar").read_bytes()).hexdigest(),
               "player_client_scenarios": "NOT_RUN: available client protocol library does not support 26.3", "platforms": {}}
     platforms = list(BUILDS) if args.platform == "all" else [args.platform]
     for platform in platforms:

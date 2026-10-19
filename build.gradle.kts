@@ -4,7 +4,7 @@ plugins {
 
 allprojects {
     group = "com.vvvvdddd"
-    version = "1.0.1"
+    version = "1.0.2"
     repositories {
         mavenCentral()
         maven("https://repo.papermc.io/repository/maven-public/") {
