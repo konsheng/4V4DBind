@@ -1,0 +1,77 @@
+{
+  "artifact": "4V4DBind-1.0.jar",
+  "artifact_sha256": "da4cf72ad3ff2caa2b9ce9b6405d0d9ae98fb6e1bd83b8f021a8cd89d14689da",
+  "player_client_scenarios": "NOT_RUN: available client protocol library does not support 26.3",
+  "platforms": {
+    "paper": {
+      "checks": [
+        "startup",
+        "no-types-yml-generated",
+        "multiple-values",
+        "owner-deduplication",
+        "cross-owner-duplicate",
+        "phone-multiple-values",
+        "phone-owner-deduplication",
+        "phone-cross-owner-duplicate",
+        "phone-format-validation",
+        "email-normalization",
+        "identity-pair",
+        "identity-deduplication",
+        "owner-scoped-view",
+        "masked-list",
+        "delete",
+        "stable-increasing-id",
+        "reload",
+        "failed-reload-retains-configuration",
+        "legacy-types-yml-ignored",
+        "lowered-limits-retain-existing-data",
+        "unlimited-binding-limit",
+        "unknown-limit-type-rejected",
+        "shutdown",
+        "startup",
+        "restart-persistence",
+        "shutdown"
+      ],
+      "result": "PASS",
+      "runtime_versions": {
+        "jdbc": "3.49.1.0",
+        "sqlite": "3.49.1"
+      }
+    },
+    "folia": {
+      "checks": [
+        "startup",
+        "no-types-yml-generated",
+        "multiple-values",
+        "owner-deduplication",
+        "cross-owner-duplicate",
+        "phone-multiple-values",
+        "phone-owner-deduplication",
+        "phone-cross-owner-duplicate",
+        "phone-format-validation",
+        "email-normalization",
+        "identity-pair",
+        "identity-deduplication",
+        "owner-scoped-view",
+        "masked-list",
+        "delete",
+        "stable-increasing-id",
+        "reload",
+        "failed-reload-retains-configuration",
+        "legacy-types-yml-ignored",
+        "lowered-limits-retain-existing-data",
+        "unlimited-binding-limit",
+        "unknown-limit-type-rejected",
+        "shutdown",
+        "startup",
+        "restart-persistence",
+        "shutdown"
+      ],
+      "result": "PASS",
+      "runtime_versions": {
+        "jdbc": "3.49.1.0",
+        "sqlite": "3.49.1"
+      }
+    }
+  }
+}

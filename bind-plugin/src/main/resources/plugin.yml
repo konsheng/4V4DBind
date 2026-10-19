@@ -1,0 +1,26 @@
+name: 4V4DBind
+version: '${version}'
+main: com.vvvvdddd.bind.plugin.BindPlugin
+api-version: '26.3'
+folia-supported: true
+description: 可扩展的纯命令玩家资料绑定插件
+authors: [Konsheng]
+permissions:
+  4v4dbind.use:
+    description: 管理自己的绑定资料
+    default: true
+  4v4dbind.admin.list:
+    description: 查看其他玩家的脱敏列表
+    default: op
+  4v4dbind.admin.view:
+    description: 查看其他玩家的完整资料
+    default: op
+  4v4dbind.admin.add:
+    description: 为其他玩家添加资料
+    default: op
+  4v4dbind.admin.remove:
+    description: 删除其他玩家的资料
+    default: op
+  4v4dbind.reload:
+    description: 重载插件配置
+    default: op

@@ -1,0 +1,15 @@
+# 配置修改后使用 /bind reload, 无效配置不会替换当前配置
+schema-version: 1
+page-size: 10
+queue-capacity: 256
+busy-timeout-millis: 3000
+rate-burst: 5
+rate-per-second: 1.0
+max-in-flight: 2
+zone: Asia/Hong_Kong
+# 每类数量上限, -1表示不限, 省略某项时使用代码默认值10
+binding-limits:
+  qq: 10
+  email: 10
+  identity: 10
+  phone: 10
