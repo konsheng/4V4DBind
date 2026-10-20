@@ -91,3 +91,5 @@ binding-limits:             # 每名玩家各类绑定的数量上限, -1表示�
 修改后执行 `/bind reload`. `queue-capacity` 和 `busy-timeout-millis` 修改后需要重启服务端. 降低绑定上限不会删除已有记录
 
 备份时先停服, 再复制整个 `plugins/4V4DBind` 目录
+
+bStats 统计服务器及插件基本使用情况, 不上传绑定资料. 在 `plugins/bStats/config.yml` 中设置 `enabled: false` 并重启服务端可关闭统计

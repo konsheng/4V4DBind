@@ -1,10 +1,17 @@
 plugins {
     java
+    id("com.gradleup.shadow") version "9.6.1"
+}
+
+val bstats = configurations.create("bstats")
+
+dependencies {
+    bstats("org.bstats:bstats-bukkit:3.2.1")
 }
 
 allprojects {
     group = "com.vvvvdddd"
-    version = "1.0.3"
+    version = "1.0.4"
     repositories {
         mavenCentral()
         maven("https://repo.papermc.io/repository/maven-public/") {
@@ -41,8 +48,14 @@ subprojects {
 }
 
 tasks.jar {
+    enabled = false
+}
+
+tasks.shadowJar {
     archiveFileName.set("4V4DBind-${project.version}.jar")
+    configurations = listOf(bstats)
     duplicatesStrategy = DuplicatesStrategy.FAIL
+    relocate("org.bstats", "com.vvvvdddd.bind.libs.bstats")
     subprojects.forEach { module ->
         dependsOn(module.tasks.named("classes"))
         from(module.extensions.getByType<SourceSetContainer>().named("main").map { it.output })

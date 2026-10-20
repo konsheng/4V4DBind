@@ -1,20 +1,21 @@
 # 4V4DBind 验证记录
 
-验证日期: 2026-10-19, Asia/Hong_Kong
+验证日期: 2026-10-20, Asia/Hong_Kong
 
-本页对应 1.0.3 发布构建, 使用 Minecraft 26.3 作为 API、编译和验收基线, 未将其他游戏版本列入已验证范围
+本页对应 1.0.4 发布构建, 使用 Minecraft 26.3 作为 API、编译和验收基线, 未将其他游戏版本列入已验证范围
 
 ## 环境与产物
 
 - Windows Server 2025, Temurin OpenJDK 25.0.4.1
-- Gradle 9.8.1, JUnit 6.1.3
+- Gradle 9.8.1, JUnit 6.1.3, Shadow 9.6.1
+- bStats Bukkit 3.2.1, 插件 ID 34819
 - Paper 26.3 build 205, STABLE
 - Folia 26.3 build 3, ALPHA
 - 两个平台实际使用 JDBC 3.49.1.0, SQLite 3.49.1
-- 交付文件: `build/libs/4V4DBind-1.0.3.jar`, 97,733 字节
-- SHA-256: `7aa3d085f5afbf090d3c44d69f80768289ef38eb33c9d05f012354c089f3dcc0`
+- 交付文件: `build/libs/4V4DBind-1.0.4.jar`, 126,841 字节
+- SHA-256: `347d95358ef328cb82ee7706a2f2ddb7fb3f4c481016ffebb59b9ff36ad89a76`
 
-Gradle 发行包与 Wrapper JAR 已分别核对官方 SHA-256. 成品包含三个内部模块及 `plugin.yml`、`config.yml`、`messages.yml` 三份 YAML 资源, 未包含 Bukkit/Paper/Folia API、Adventure、Gson、SQLite 驱动、测试代码或本地 IDE 文件
+Gradle 发行包与 Wrapper JAR 已分别核对官方 SHA-256. 成品包含三个内部模块及 `plugin.yml`、`config.yml`、`messages.yml` 三份 YAML 资源, 以及重定位到 `com.vvvvdddd.bind.libs.bstats` 的 bStats 和 MIT 许可证, 未包含 Bukkit/Paper/Folia API、Adventure、Gson、SQLite 驱动、测试代码或本地 IDE 文件
 
 ## 自动化测试
 
@@ -35,13 +36,14 @@ Gradle 发行包与 Wrapper JAR 已分别核对官方 SHA-256. 成品包含三�
 
 ## 真实服务端验收
 
-以下实服结果来自提交 `e1e932c` 构建的 `4V4DBind-1.0.1.jar`, SHA-256 为 `16dc486bb21fca6732d2bc5d2daed39808cc0e0f8e7fa101d7ce44bee348299f`. 两个平台使用同一产物, 由 `tools/live_acceptance.py` 在 `127.0.0.1` 临时测试服完成以下操作. 目标玩家目录由虚构测试夹具预置, 通过真实服务端控制台执行管理员命令
+以下实服验收于 2026-10-19 使用已接入 bStats 的 `4V4DBind-1.0.3.jar`, SHA-256 为 `b4345d6423569e29e9416034341bc506617e7db31089abd16fd5269cc6855ac0`. 两个平台使用同一产物, 由 `tools/live_acceptance.py` 在 `127.0.0.1` 临时测试服完成以下操作. 目标玩家目录由虚构测试夹具预置, 通过真实服务端控制台执行管理员命令
 
-1.0.3 与上述已实测产物逐项比较, 41 个类文件和其他资源字节完全一致, 唯一变化是 `plugin.yml` 中的发行号由 `1.0.1` 改为 `1.0.3`. 本次保留相同功能代码的实测依据, 未重复运行 1.0.3 实服验收; 机器可读报告中的原始产物名称和校验值保持真实记录
+1.0.4 与上述已实测产物逐项比较, 55 个类文件和其他资源字节完全一致, 唯一变化为 `plugin.yml` 中的发行号由 `1.0.3` 改为 `1.0.4`. 本次保留相同功能代码的实测依据, 未重复运行 1.0.4 实服验收; 原始报告中的产物名称和校验值保持不变
 
 | 场景 | Paper | Folia |
 | --- | --- | --- |
 | 插件加载、database.db 就绪、正常停服 | 通过 | 通过 |
+| bStats 初始化、共享配置关闭后重启 | 通过 | 通过 |
 | QQ号多条绑定、本人重复拒绝、跨玩家相同资料 | 通过 | 通过 |
 | 邮箱规范化、户籍成组保存与身份证判重 | 通过 | 通过 |
 | 手机号多条绑定、本人去重、跨玩家相同、非法格式拒绝 | 通过 | 通过 |
@@ -52,12 +54,15 @@ Gradle 发行包与 Wrapper JAR 已分别核对官方 SHA-256. 成品包含三�
 | 主配置 `-1` 不限数量、未知限额类型拒绝 | 通过 | 通过 |
 | 完整停服、重新启动、逐条核对数据与编号 | 通过 | 通过 |
 
-机器可读结果见 [acceptance-report.json](acceptance-report.json). 原始临时目录为 `build/acceptance/run-20261019-175056`, 每个平台保留两次启动日志与 SQLite 数据. 这些文件都被 Git 忽略, 未混入交付包
+机器可读结果见 [acceptance-report.json](acceptance-report.json). Paper 原始目录为 `build/acceptance/run-20261019-212501`, Folia 为 `build/acceptance/run-20261019-212735`, 各保留两次启动日志与 SQLite 数据. 这些文件都被 Git 忽略, 未混入交付包
+
+Folia 首次启动在插件加载前下载 Minecraft 基础文件时遇到 TLS 中断. 对照服务端包内的官方 SHA-256 核对本地缓存后, 复用缓存重试通过
 
 服务端 OSHI 在此 Windows 环境报告 Perflib 计数器错误, 不影响上述启动和命令验收. 故障注入的错误配置会产生预期的重载拒绝日志
 
 ## 尚未完成的实测
 
+- 未验证 bStats 后台入库或长期数据展示; 本次验证 SDK 初始化、共享关闭配置启动和停服
 - 未完成 Minecraft 26.3 真实玩家客户端登录、本人命令、Tab 补全和聊天显示验收
 - 未完成真实玩家退出重连、动态撤销权限、Folia 跨区域移动时的回执实测; 对应逻辑已有自动化模型测试
 - 尝试的测试客户端库 `minecraft-protocol` 1.68.0 仅提供至 26.1 的协议支持, 未用旧协议连接结果代替 26.3 客户端验证

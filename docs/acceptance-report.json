@@ -1,12 +1,18 @@
 {
-  "artifact": "4V4DBind-1.0.1.jar",
-  "artifact_sha256": "16dc486bb21fca6732d2bc5d2daed39808cc0e0f8e7fa101d7ce44bee348299f",
+  "artifact": "4V4DBind-1.0.3.jar",
+  "artifact_sha256": "b4345d6423569e29e9416034341bc506617e7db31089abd16fd5269cc6855ac0",
   "player_client_scenarios": "NOT_RUN: available client protocol library does not support 26.3",
+  "bstats_backend_submission": "NOT_RUN: initialization and shared disabled configuration verified only",
+  "source_reports": {
+    "paper": "build/acceptance/run-20261019-212501/report.json",
+    "folia": "build/acceptance/run-20261019-212735/report.json"
+  },
   "platforms": {
     "paper": {
       "checks": [
         "startup",
         "database-file-name",
+        "bstats-initialization",
         "multiple-values",
         "owner-deduplication",
         "cross-owner-duplicate",
@@ -28,6 +34,7 @@
         "unknown-limit-type-rejected",
         "shutdown",
         "startup",
+        "bstats-disabled-startup",
         "restart-persistence",
         "shutdown"
       ],
@@ -41,6 +48,7 @@
       "checks": [
         "startup",
         "database-file-name",
+        "bstats-initialization",
         "multiple-values",
         "owner-deduplication",
         "cross-owner-duplicate",
@@ -62,6 +70,7 @@
         "unknown-limit-type-rejected",
         "shutdown",
         "startup",
+        "bstats-disabled-startup",
         "restart-persistence",
         "shutdown"
       ],

@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import net.kyori.adventure.text.Component;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
@@ -41,6 +42,7 @@ public final class BindPlugin extends JavaPlugin implements Listener {
             new SessionGate(5, System.nanoTime()));
     private SessionDirectory sessions;
     private SqliteBindingRepository repository;
+    private Metrics metrics;
     private volatile RuntimeState runtime;
     private State state = State.STARTING;
     private int active;
@@ -72,6 +74,11 @@ public final class BindPlugin extends JavaPlugin implements Listener {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 player.getScheduler().run(this, task -> joined(player), null);
             }
+            try {
+                metrics = new Metrics(this, 34819);
+            } catch (RuntimeException | LinkageError failure) {
+                getLogger().warning("bStats 初始化失败");
+            }
         } catch (RuntimeException failure) {
             synchronized (gate) { state = State.FAILED; }
             report("CONFIGURE", failure);
@@ -81,6 +88,7 @@ public final class BindPlugin extends JavaPlugin implements Listener {
 
     @Override public void onDisable() {
         synchronized (gate) { state = State.STOPPING; }
+        if (metrics != null) metrics.shutdown();
         if (sessions != null) sessions.clear();
         if (repository != null) repository.close();
     }

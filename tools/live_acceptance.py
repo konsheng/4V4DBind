@@ -53,7 +53,7 @@ class Server:
         self.jar = download
         plugins = self.folder / "plugins"
         plugins.mkdir(exist_ok=True)
-        shutil.copy2(ROOT / "build/libs/4V4DBind-1.0.3.jar", plugins / "4V4DBind.jar")
+        shutil.copy2(ROOT / "build/libs/4V4DBind-1.0.4.jar", plugins / "4V4DBind.jar")
         (self.folder / "eula.txt").write_text("eula=true\n", encoding="utf-8")
         properties = {
             "server-ip": "127.0.0.1", "server-port": str(self.port), "online-mode": "false",
@@ -146,6 +146,12 @@ class Server:
         other = str(uuid.UUID("00000000-0000-4000-8000-000000000002"))
         assert self.db.is_file()
         self.checks.append("database-file-name")
+        metrics_config = self.folder / "plugins/bStats/config.yml"
+        assert metrics_config.is_file()
+        metrics_contents = metrics_config.read_text(encoding="utf-8")
+        assert "enabled: true" in metrics_contents
+        assert not any("bStats 初始化失败" in line for line in self.log_lines())
+        self.checks.append("bstats-initialization")
         with closing(sqlite3.connect(self.db, timeout=5)) as connection, connection:
             connection.executemany("INSERT INTO players(uuid,name,name_key) VALUES(?,?,?)",
                                    [(owner, "TestOwner", "testowner"), (other, "TestOther", "testother")])
@@ -212,7 +218,11 @@ class Server:
         self.command("bind reload", "配置已重载")
         before = self.sql("SELECT id,values_json FROM bindings ORDER BY id")
         self.stop()
+        metrics_config.write_text(metrics_contents.replace("enabled: true", "enabled: false", 1), encoding="utf-8")
         self.start()
+        assert "enabled: false" in metrics_config.read_text(encoding="utf-8")
+        assert not any("bStats 初始化失败" in line for line in self.log_lines())
+        self.checks.append("bstats-disabled-startup")
         assert self.sql("SELECT id,values_json FROM bindings ORDER BY id") == before
         assert self.db.is_file()
         self.command("bind admin list TestOwner", "第 1/1 页")
@@ -227,8 +237,8 @@ def main():
     if not args.accept_eula:
         parser.error("启动前需要接受 Minecraft EULA: https://www.minecraft.net/eula")
     run = ROOT / "build/acceptance" / time.strftime("run-%Y%m%d-%H%M%S")
-    report = {"artifact": "4V4DBind-1.0.3.jar",
-              "artifact_sha256": hashlib.sha256((ROOT / "build/libs/4V4DBind-1.0.3.jar").read_bytes()).hexdigest(),
+    report = {"artifact": "4V4DBind-1.0.4.jar",
+              "artifact_sha256": hashlib.sha256((ROOT / "build/libs/4V4DBind-1.0.4.jar").read_bytes()).hexdigest(),
               "player_client_scenarios": "NOT_RUN: available client protocol library does not support 26.3", "platforms": {}}
     platforms = list(BUILDS) if args.platform == "all" else [args.platform]
     for platform in platforms:

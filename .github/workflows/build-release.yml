@@ -75,6 +75,9 @@ jobs:
                   'com/vvvvdddd/bind/core/BuiltinTypes.class',
                   'com/vvvvdddd/bind/storage/SqliteBindingRepository.class',
                   'com/vvvvdddd/bind/plugin/BindPlugin.class',
+                  'com/vvvvdddd/bind/libs/bstats/bukkit/Metrics.class',
+                  'com/vvvvdddd/bind/libs/bstats/MetricsBase.class',
+                  'META-INF/licenses/bstats.txt',
               }
               if not required.issubset(names) or 'types.yml' in names:
                   raise SystemExit('插件 JAR 缺少必要模块或包含已移除的类型配置')
